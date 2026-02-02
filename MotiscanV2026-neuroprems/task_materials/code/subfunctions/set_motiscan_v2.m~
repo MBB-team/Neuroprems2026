@@ -1,0 +1,361 @@
+function [cfg_out] = set_motiscan_v2(cfg_in)
+%[] = set_motiscan_v2()
+% initializes the configuration of motiscan tasks (psychtoolbox)
+%       - subject identification
+%       - check options
+%       - subject folder
+%       - screen
+%       - keyboard
+%       - random number generator
+%       - device configuration
+%   
+%
+%
+%
+
+%% Unpack cfg_in 
+fields_cfg = fields(cfg_in);
+
+%% Extends script directories
+if any(contains(fields_cfg,'paths'))
+    paths = cfg_in.paths;
+    
+else 
+    error('Please check paths & directories!')
+end
+
+% root=pwd;
+% cd ..
+% uproot=pwd;
+% 
+% % study name WHAT FOR ???
+% if exist('study.mat','file')==2
+%     load('study.mat');
+% else
+%     studyName = 'MBB_battery';
+% end
+
+% define group & subject result directory
+resultdir=[uproot filesep 'resultats'];
+if exist(resultdir,'dir')~=7
+    mkdir resultats
+end
+cd(resultdir);
+subdir=[resultdir [filesep 'sub' num2str(subid)]];
+if exist(subdir,'dir')~=7
+    mkdir(resultdir,[filesep 'sub' num2str(subid)]);
+end
+resultname=strcat(studyName,'_',taskName,'_sub',num2str(subid),'_sess',num2str(nsession));
+clck = clock;
+time = [num2str(clck(2)) '_' num2str(clck(3)) '_' num2str(clck(1)) '_' num2str(clck(4)) 'h' num2str(clck(5)) 'min' ];
+resultname = [resultname '_' time];
+
+% subdirectories
+%%% define image directory
+cd(root);
+imgdir=[paths.main  'images'];
+addpath(genpath(imgdir));
+%%% define text directory
+cd(root);
+textdir=[paths.code filesep 'text'];
+addpath(genpath(textdir));
+%%% define questionaires directory
+cd(root);
+psychodir=[paths.code filesep 'psychometric_scale'];
+addpath(genpath(psychodir));
+%%% define subfunctions directory
+cd(root);
+subfunc=[paths.code filesep 'subfunctions'];
+addpath(genpath(subfunc));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% ---------------------------------------------
+% Identification -> NO NEED, CHECKED BEFORE!
+%-----------------------------------------------
+nInput = numel(inputList);
+if nInput>=1
+    if isnumeric(inputList{1})
+        subid=inputList{1};
+    else
+        error(' "subid" should be numeric');
+    end
+end
+if nInput>=2
+    if isnumeric(inputList{2}) && round(inputList{2})==inputList{2}
+        nsession=inputList{2};
+    else
+        error(' "nsession" should be an integer number');
+    end
+end
+if exist('subid')~=1
+    subid=input('subject identification number? ','s');
+end
+
+if exist('nsession')~=1
+    nsession=input('session number ?');
+end
+
+% Check Options
+%-----------------------------------------------
+for iarg=1:nInput
+   if ischar(inputList{iarg})
+       if ismember(inputList{iarg},optionList)
+           eval([ inputList{iarg} '= inputList{iarg+1};' ]);
+%            eval([ 'subdata.' inputList{iarg} '= inputList{iarg+1};' ]); % future release
+       end
+   end
+end
+
+% Directory Configuration
+%-----------------------------------------------
+% define script directory
+root=pwd;
+cd ..
+uproot=pwd;
+
+% study name
+if exist('study.mat','file')==2
+    load('study.mat');
+else
+    studyName = 'MBB_battery';
+end
+
+% define group & subject result directory
+resultdir=[uproot filesep 'resultats'];
+if exist(resultdir,'dir')~=7
+    mkdir resultats
+end
+cd(resultdir);
+subdir=[resultdir [filesep 'sub' num2str(subid)]];
+if exist(subdir,'dir')~=7
+    mkdir(resultdir,[filesep 'sub' num2str(subid)]);
+end
+resultname=strcat(studyName,'_',taskName,'_sub',num2str(subid),'_sess',num2str(nsession));
+clck = clock;
+time = [num2str(clck(2)) '_' num2str(clck(3)) '_' num2str(clck(1)) '_' num2str(clck(4)) 'h' num2str(clck(5)) 'min' ];
+resultname = [resultname '_' time];
+
+% subdirectories
+%%% define image directory
+cd(root);
+imgdir=[root filesep 'images'];
+addpath(genpath(imgdir));
+%%% define text directory
+cd(root);
+textdir=[root filesep 'text'];
+addpath(genpath(textdir));
+%%% define questionaires directory
+cd(root);
+psychodir=[root filesep 'psychometric_scale'];
+addpath(genpath(psychodir));
+%%% define subfunctions directory
+cd(root);
+subfunc=[root filesep 'subfunctions'];
+addpath(genpath(subfunc));
+
+
+% Screen Configuration
+%-----------------------------------------------
+i_window=0;
+i_window= max(Screen('Screens'));
+[L, H]=Screen('WindowSize',i_window);
+
+x=L/2;
+y=H/2;
+Screen('Preference', 'SkipSyncTests', 1); %--> or see 'help SyncTrouble'
+Screen('Preference', 'ConserveVRAM', 4096);
+if fullscreen
+    [display.window]=Screen('OpenWindow',i_window,[0 0 0],[]); % full-screen window
+else
+    nScreen=numel(Screen('Screens'));
+    if nScreen>=2
+        i_window=2;
+        [display.window]=Screen('OpenWindow',i_window,[0 0 0],[]); % testing window
+        [L, H]=Screen('WindowSize',i_window);
+        x=L/2;
+        y=H/2;
+    else
+        [display.window]=Screen('OpenWindow',i_window,[0 0 0],[0 0 x y]); % testing window
+    end
+end
+display.x=x;
+display.y=y;
+Screen('TextSize', display.window, 40);
+Screen('TextFont', display.window, 'arial');
+HideCursor;
+Priority(MaxPriority(display.window));
+
+
+% Keyboard Configuration
+%-----------------------------------------------
+[~,~,keycode] = KbCheck;
+DisableKeysForKbCheck(find(keycode==1));
+
+KbName('UnifyKeyNames');
+key.left = KbName('LeftArrow');
+key.right = KbName('RightArrow');
+key.up = KbName('UpArrow');
+key.down = KbName('DownArrow');
+key.space = KbName('Space') ;
+key.valid = KbName('Space');
+key.escape = KbName('ESCAPE') ;
+try
+    key.clear = KbName('BackSpace') ;
+catch
+    key.clear = KbName('DELETE') ;
+end
+
+if exist('laptop')
+    if laptop
+        key.digit = [48:57];        
+    else
+        key.digit = [96:105];
+    end
+end
+
+% Generator reset
+%-----------------------------------------------
+rand('state',sum(100*clock));
+
+
+% Port Communication
+%-----------------------------------------------
+IOPort('CloseAll');
+
+% Oxymeter Configuration
+%-----------------------------------------------
+if exist('oxymeter')==1
+    if oxymeter==1
+        % pathway
+        oxymeterPath = [uproot filesep 'Oxymeter'];
+        if exist(oxymeterPath)~=7
+            error('path:oxymeter',['no oxymeter directory']);
+        end
+        addpath(oxymeterPath);
+        
+        % find emulated serial-to-usb port
+        % valid 'portname' depends on the machine and the platform you are using,
+        % try manually to find the one that match
+        if ispc
+            portname = 'COM3' ; %  common names: 'COM1','COM2','COM3'
+        elseif ismac
+            portname = '/dev/cu.usbserial-FT3Z95V5' ; %  common names: '/dev/cu.usbserial-FT3Z95V5'
+        elseif isunix
+            portname = '/dev/ttyUSB0' ; % common names: '/dev/ttyUSB0','/dev/ttyS0'
+        end
+        comList = getAvailableComPort;
+        portname = comList{end}; % last COM port detected
+
+        % start connection
+        global port ; port = portname;
+        ReadOxymeter('connect'); % open new connection with the device
+
+        % reset real-time data buffer 
+        purgedone=0;
+        while purgedone==0
+            ret = ReadOxymeter('livedata');
+            purgedone=isempty(ret);
+        end
+    end
+end
+
+% Grip Configuration
+%-----------------------------------------------
+if exist('gripdevice')==1
+    
+    % configure device reader
+    switch gripdevice
+        case 'vernier'
+            % add paths
+            subpath=[uproot filesep 'dynanometer'];
+            if exist(subpath)~=7;error('path:dynamometer',['no dynamometer toolbox folder']);end
+            addpath(genpath(subpath));
+    
+            Handle=dynamometer;
+            readGrip = @readVernier;
+            
+        case 'mie'
+            % add paths
+            subpath=[uproot filesep 'newMatlabOscillo'];
+            if exist(subpath)~=7;error('path:dynamometer',['no dynamometer toolbox folder']);end
+            addpath(genpath(subpath));
+            
+            Handle=InitializeGrip('MIE',[1]);
+            readGrip = @readMIE;
+    end
+    
+end
+
+% Occulometer Configuration
+%-----------------------------------------------
+%%% define subfunctions directory
+subpath=[uproot filesep 'EyeTribeToolbox-master'];
+if exist(subpath)~=7
+    error('path:occulometer',['no occulometer toolbox folder']);
+end
+addpath(genpath(subpath));
+
+% Camera Configuration
+%-----------------------------------------------
+if exist('camera')==1
+    if camera
+        camList = webcamlist;
+        cam = webcam(1);
+        cd(subdir);
+        vid = VideoWriter([resultname '_movie.avi']);
+        open(vid);
+        cd(root);
+    end
+end
+
+% Joystick Configuration
+%-----------------------------------------------
+if exist('joystick')==1
+    if joystick
+        try
+            % connect device
+            JoyPad = read_joystick('connect');
+            % load jostick configuration
+            cd(subdir);
+            f = dir(['*trainingJoystick_sub' num2str(subid) '_sess' num2str(nsession) '*.mat' ]);
+            d = load(f.name);
+            JoyPad.gain = d.joystickGain ; 
+        catch
+           warning('no joystick connected.');
+        end
+                
+    end
+end
+
+% Tracker (Mouse/Touchscreen) Configuration
+%-----------------------------------------------
+
+if exist('mouse')==1
+    if mouse 
+        ShowCursor;
+        wait4release = @() MouseReleaseWait;
+        recordResponse = @(window) GetMouse(window);
+    end
+end
+if exist('touch')==1
+    if touch
+        wait4release = @() TouchReleaseWait;
+        recordResponse = @(window) GetMouseTransient(window,1);
+    end
+end
+
+
+
