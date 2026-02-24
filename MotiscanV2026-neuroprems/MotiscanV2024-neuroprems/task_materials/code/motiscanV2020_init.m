@@ -72,6 +72,10 @@ elseif contains_forOlder(cfg.hostname,'shuRecherche-HP')
     cfg.system_id = 'Motineuro_tablet';
 
 
+    elseif contains_forOlder(cfg.hostname,'ICM-PESSI-WT008')
+    cfg.system_id = 'MotineuroAC_tablet';
+
+
     % PRISM
 elseif contains_forOlder(cfg.hostname,'ICM-PRISM')
     cfg.system_id = 'PRISM_PC';
@@ -136,10 +140,14 @@ switch cfg.system_id
         paths.PTBtouch = fullfile('C:','toolbox','PsychtoolboxTouch');
         paths.PTB = fullfile('C:','toolbox','Psychtoolbox')
   
-
     case {'Motineuro_tablet'}
         paths.PTBtouch = fullfile('C:','Dowloads','Psychtoolbox-3-master');
         paths.PTB = fullfile('C:','Downloads','Psychtoolbox-3-master');
+
+    case {'MotineuroAC_tablet'}
+        paths.PTBtouch = fullfile('C:\Users\alice.clerouin\Documents\MATLAB\toolbox\Psychtoolbox-3-master');
+        paths.PTB = fullfile('C:\Users\alice.clerouin\Documents\MATLAB\toolbox\Psychtoolbox-3-master');
+
 
         % personal
     case {'TLs_MBP'}

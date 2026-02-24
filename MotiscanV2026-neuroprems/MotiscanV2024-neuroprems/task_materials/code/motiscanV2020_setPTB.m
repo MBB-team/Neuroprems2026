@@ -59,12 +59,12 @@ y = H/2;
 
 Screen('Preference','SyncTestSettings', 0.004, 50, 0.1, 5);  % A bit less strict settings for the sync test
 Screen('Preference','VisualDebugLevel', 0);  % supress PTB start screen
-Screen('Preference','SkipSyncTests', 1);  % this can be turned off for debugging
+Screen('Preference','SkipSyncTests', 0);  % this can be turned off for debugging
 % sst = 0;
 % cfg.debug = true;
 % if cfg.debug; sst = 1; warning('PTB: ''SkipSyncTests,1'', debug mode'); end
 % Screen('Preference', 'SkipSyncTests', sst);%1); % or see 'help SyncTrouble'
-Screen('Preference', 'ConserveVRAM', 4096);
+%Screen('Preference', 'ConserveVRAM', 4096);
 
 display.i_screen = i_screen;
 display.L        = L;
@@ -160,6 +160,11 @@ switch cfg.system_id
         fontsize.global.ftsz_small   = 50;
 
   case {'Motineuro_tablet'}
+        fontsize.global.ftsz_big     = 150; 
+        fontsize.global.ftsz_mid     = 100; 
+        fontsize.global.ftsz_small   = 50;
+
+  case {'MotineuroAC_tablet'}
         fontsize.global.ftsz_big     = 150; 
         fontsize.global.ftsz_mid     = 100; 
         fontsize.global.ftsz_small   = 50;

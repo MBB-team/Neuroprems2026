@@ -138,7 +138,31 @@ elseif strcmp(sub_data.study_name, 'ddt')
     task_selNber_sorted = [1 19 31];
 elseif strcmp(sub_data.study_name, 'neuroprems')
     input_text = sprintf(inputText_iScript{6},sub_data.study_name); % text:1
-    task_selNber_sorted = [1 19 20 26 31];
+    rng('shuffle'); % Ensure different randomization each time
+    
+    block1 = {17,19,20,21,22};
+    block2 = {23,24,25};
+    block3 = {26,29,30,31};
+    block4 = {32,33,34};
+    shuffledBlock1 = block1(randperm(length(block1)));
+    shuffledBlock2 = block2(randperm(length(block2)));
+    shuffledBlock3 = block3(randperm(length(block3)));
+    shuffledBlock4 = block4(randperm(length(block4)));
+    Block1 = [shuffledBlock1{:}];
+    Block2 = [shuffledBlock2{:}];
+    Block3 = [shuffledBlock3{:}];
+    Block4 = [shuffledBlock4{:}];
+
+    % Debug print statements to verify randomization 
+    disp('Shuffled Block 1:');
+    disp(Block1); 
+    disp('Shuffled Block 2:'); 
+    disp(Block2); 
+    disp('Shuffled Block 3:'); 
+    disp(Block3); 
+
+
+    task_selNber_sorted = [1 19 20 26 31 30];
 else
     error('study_name error!')
 end

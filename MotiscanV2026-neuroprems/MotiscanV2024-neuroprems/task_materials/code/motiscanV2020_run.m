@@ -139,6 +139,7 @@ elseif strcmp(sub_data.study_name, 'ddt')
 elseif strcmp(sub_data.study_name, 'neuroprems')
     input_text = sprintf(inputText_iScript{6},sub_data.study_name); % text:1
     task_selNber_sorted = [1 19 20 26 31 30];
+    
 else
     error('study_name error!')
 end

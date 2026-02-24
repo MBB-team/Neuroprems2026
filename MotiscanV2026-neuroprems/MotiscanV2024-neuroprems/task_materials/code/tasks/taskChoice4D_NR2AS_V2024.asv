@@ -23,9 +23,9 @@ function [sub_data] = taskChoice4D_NR2AS_V2024(sub_data, cfg)
 % Inputs: sub_data and cfg structures
 %
 % Outputs: updated sub_data with results = training_data and data tables
-% with (trialNumber, isLeftChoice, choicePosition, isAccept, RT) for training and
+% with (trialNumber, isUpChoice, choicePosition, isAccept, RT) for training and
 % with (trialNumber, itemNumberNormViolation, ratingNormViolation, itemNumberBenefit, ratingBenefit, itemNumberSanction, ratingSanction, 
-%       isLeftChoice, choicePosition, isAccept, 'RT') for testing
+%       isUpChoice, choicePosition, isAccept, 'RT') for testing
 %
 % Author: Raphael Le Bouc, Nicolas Borderies
 % email address: nico.borderies@gmail.com
@@ -34,29 +34,12 @@ function [sub_data] = taskChoice4D_NR2AS_V2024(sub_data, cfg)
 % Updated March 2020 for V2, P. CARRILLO
 % Updated March 2024 for V3, making it 4D with aversive sanction, A. CLEROUIN
 
-%normTestingList1_file = 'SocialNormViolations_liste1.xlsx';
-%normTestingList2_file = 'SocialNormViolations_liste2.xlsx';
+
 appariementTestingList1_file ='appariement4D_liste1_NR2AS.xlsx';
-appariementTestingList2_file ='appariement4D_liste2_NR2AS.xlsx';
 
-response = input('Liste  utiliser (1/2):');
+appariement_testing = readtable(appariementTestingList1_file);
 
-
-while response ~=1 && response ~=2
-    disp('Rponse invalide. Veuillez répondre avec 1 ou 2:')
-    response = input('Liste à utiliser (1/2):');
-end
-
-if response == 1
-    %norm_testingList = readstim(normTestingList1_file)';
-    appariement_testing = readtable(appariementTestingList1_file);
-
-elseif response == 2
-    %norm_testingList = readstim(normTestingList2_file)';
-    appariement_testing = readtable(appariementTestingList2_file);
-end
-
-ListeNb = response;
+ListeNb = 1;
 
 %% Configuration
 cfg = motiscanV2020_setTask(cfg);
@@ -96,7 +79,7 @@ max_charPline = 22;
 %-----------------------------------------------
 
 norm_ratingTaskName = 'taskRatingN';
-benefit_ratingTaskName = 'taskRatingR2';
+%benefit_ratingTaskName = 'taskRatingR2';
 sanction_ratingTaskName    = 'taskRatingS'; %audience
 aversivesanction_ratingTaskName = 'taskRatingAS';
 
@@ -140,7 +123,7 @@ aversivesanction_testingList = readstim(aversivesanctionTestingList_file)';
 
 
 
-cd(cfg.paths.task.images); % enter img dir
+%cd(cfg.paths.task.images); % enter img dir
 % informative icons
 cross=Screen('MakeTexture',display.window,imread('Cross.bmp'));
 rectcross=CenterRectOnPoint(Screen('Rect',cross),x,y);
@@ -169,8 +152,9 @@ for i=1:12
     imgItemS1(i).texture = Screen('MakeTexture',display.window,imread(['img_SocialSanctions1_' num2str(i) '.bmp']));
     imgItemAS0(i).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction0_' num2str(i) '.bmp']));
     imgItemAS1(i).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction1_' num2str(i) '.bmp']));
+    imgItemAS2(i).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction2_' num2str(i) '.bmp']));
 end
-    imgItemAS2(1).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction2.bmp']));
+    
 
 imgTrainingN = struct('texture',{},'position',{});
 imgTrainingR = struct('texture',{},'position',{});
@@ -187,11 +171,12 @@ for i=1:6
     imgTrainingS1(i).texture = Screen('MakeTexture',display.window,imread(['img_SocialSanctions1_training_' num2str(i) '.bmp']));
     imgTrainingAS0(i).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction0_training_' num2str(i) '.bmp']));
     imgTrainingAS1(i).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction1_training_' num2str(i) '.bmp']));
+    imgTrainingAS2(i).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction2_training_' num2str(i) '.bmp']));
 end
-    imgTrainingAS2(1).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction2_training.bmp']));
+    
 
 
-cd(cfg.paths.task.text) % extracting text
+%cd(cfg.paths.task.text) % extracting text
 
 % recurring textstring
 text.instruc = 'Instructions';
@@ -225,7 +210,31 @@ maxResponseDuration = 10e3;
 stim1_duration = 3; % first option(s) on screen
 stim2_duration = 3; % second option(s) on screen
 
-
+% Extract Ratings
+% Check if the participant has completed the rating task
+if isfield(sub_data.(cfg.sessNber_str).tasks, 'taskRatingR2') && ...
+   isfield(sub_data.(cfg.sessNber_str).tasks.taskRatingR2, 'results') && ...
+   isfield(sub_data.(cfg.sessNber_str).tasks.taskRatingR2.results, 'data')
+    
+    % Participant has completed the rating task - use their ratings
+    rtg_import = sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results.data;
+    temp = sortrows(rtg_import, 'itemNumber', 'ascend');
+    ratingsBenefit = temp.rating(1:24);
+    
+    % Get training ratings if available
+    if isfield(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results, 'trainingData')
+        tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results.trainingData, 'itemNumber', 'ascend');
+        ratingsBenefit_training = tempB_training.rating(1:4);
+    else
+        ratingsBenefit_training  = nan(1:4);
+       
+    end
+    
+    clear temp
+    
+else
+    ratingsBenefit  = nan(24);
+end
 
 % Extract ratings
 % tempA = sortrows(sub_data.(cfg.sessNber_str).tasks.(norm_ratingTaskName).results.data,...
@@ -248,7 +257,6 @@ tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskN
 
 %ratingsNorm     = tempA.rating(1:24);
 ratingsNorm     = nan(24,1); % No ratingN for neuroprems. Use pilot ratings from controls.
-ratingsBenefit  = tempB.rating(1:24);
 %ratingsSanction = tempC.rating(1:12);
 ratingsSanction = nan(12,1); % No ratingS for neuroprems. Use pilot ratings from controls.
 %ratingsAversiveSanction = tempD.rating(1:12);
@@ -256,7 +264,6 @@ ratingsAversiveSanction = nan(12,1); % No ratingAS for neuroprems. Use pilot rat
 
 %ratingsNorm_training    = tempA_training.rating(1:6);
 ratingsNorm_training     = nan(4,1); % No ratingN for neuroprems. Use pilot ratings from controls.
-ratingsBenefit_training  = tempB_training.rating(1:4);
 %ratingsSanction_training = tempC_training.rating(1:6);
 ratingsSanction_training = nan(4,1); % No ratingS for neuroprems. Use pilot ratings from controls.
 %ratingsAversiveSanction_training = tempD_training.rating(1:6);
@@ -264,7 +271,7 @@ ratingsAversiveSanction_training = nan(4,1); % No ratingAS for neuroprems. Use p
 
 
 clear temp*
-cd(cfg.paths.task.code) % returning to code directory
+%cd(cfg.paths.task.code) % returning to code directory
 
 %% OLD pairing, non-fixed
 % first series of choices (anticorrelated): the highest P is proposed with the lowest E,
@@ -321,18 +328,18 @@ training_options = [1 2 3 5; % norm number
 sidesub = mod(sub_data.sub_id,2);
 
 % training
-training_sideyes         = sidesub.*(ones(1,nTraining)); % 0=right, 1=left
-training_isLeftChoice    = nan(1,nTraining);
+training_sideyes         = sidesub.*(ones(1,nTraining)); % 0=down, 1=up
+training_isUpChoice    = nan(1,nTraining);
 training_choice_position = nan(1,nTraining);
 training_choicedo        = nan(1,nTraining);
 training_rt              = nan(1,nTraining);
 
 % testing
-isLeftChoice    = nan(1,nTrial);
+isUpChoice    = nan(1,nTrial);
 choice_position = nan(1,nTrial);
 choicedo        = nan(1,nTrial);
 rt              = nan(1,nTrial);
-sideyes         = sidesub.*(ones(1,nTrial)); % 0=right, 1=left
+sideyes         = sidesub.*(ones(1,nTrial)); % 0=down, 1=up
 
 
 %% Training
@@ -400,7 +407,7 @@ while iTrial<nTraining
         case 1
             img.AS = imgTrainingAS1(appariement_training{training_options(1,iTrial),1}).texture; %% to check
          case 2
-            img.AS = imgTrainingAS2(1).texture; 
+            img.AS = imgTrainingAS2(appariement_training{training_options(1,iTrial),1}).texture; 
     end
     
 
@@ -438,32 +445,50 @@ while iTrial<nTraining
                 timedown=GetSecs;
                 interrupt_task=1;
             else
-                if  keycode(key.left)==1
+                if  keycode(key.up)==1
                     exit=1;
                     timedown=GetSecs;
-                    training_isLeftChoice(iTrial)=1;                                              %-1=left
+                    training_isUpChoice(iTrial)=1;                                              %-1=up
                     repeat=0;
-                elseif keycode(key.right)==1
+                elseif keycode(key.down)==1
                     exit=1;
                     timedown=GetSecs;
-                    training_isLeftChoice(iTrial)=0;                                               %1=right
+                    training_isUpChoice(iTrial)=0;                                               %1=down
                     repeat=0;
                 end
             end
         end
-        [xMouse,~,buttons] = recordResponse(display.window);
-        if buttons(1)~=0
-            training_isLeftChoice(iTrial) = sign(x-xMouse);
-            if training_isLeftChoice(iTrial) == -1; training_isLeftChoice(iTrial) = 0; end
-            training_choice_position(iTrial) = (xMouse-x)/x;
-            timedown=GetSecs;
-            repeat=0;
-            exit=1;
-            
+        [xMouse, yMouse, buttons] = recordResponse(display.window);
+
+         % Check if the mouse click is within the lower half of the screen
+        if buttons(1)~=0 && yMouse > y
+            % Check if the mouse click is above the stipple line
+            if yMouse > 4*y/4 && yMouse < 5.9*y/4
+                % Record response if mouse clicked above the stipple line
+                training_isUpChoice(iTrial) = 1; % Up choice
+                timedown = GetSecs;
+                repeat = 0;
+                exit = 1;
+            elseif yMouse > 6.1*y/4 && yMouse < 2*y
+                % Record response as down if clicked below stipple line 
+                training_isUpChoice(iTrial) = 0; % Down choice
+                timedown = GetSecs;
+                repeat = 0;
+                exit = 1;
+            end
         end
+
+        %     training_isLeftChoice(iTrial) = sign(x-xMouse);
+        %     if training_isLeftChoice(iTrial) == -1; training_isLeftChoice(iTrial) = 0; end
+        %     training_choice_position(iTrial) = (xMouse-x)/x;
+        %     timedown=GetSecs;
+        %     repeat=0;
+        %     exit=1;
+        % 
+        % end
         WaitSecs(waitAft_trial);
         
-        if training_isLeftChoice(iTrial) == training_sideyes(iTrial)
+        if training_isUpChoice(iTrial) == training_sideyes(iTrial)
             training_choicedo(iTrial) = 1;
         else
             training_choicedo(iTrial) = 0;
@@ -548,14 +573,8 @@ while iTrial<nTrial
         case 1
             img.AS = imgItemAS1(appariement_testing{stimN(iTrial),6}).texture; %% to check
          case 2
-            img.AS = imgItemAS2(1).texture; 
+            img.AS = imgItemAS2(appariement_testing{stimN(iTrial),6}).texture;
     end
-
-    % Write instructions & options only for appetitive or aversive stimuli
-    % (without Yes/No options) %we dont do it anymore
-    %disp_trial(display,ftsz_small,max_charPline,text,img,win_l,win_r,sideyes(iTrial),stimOrder(iTrial),0);
-    %startime = Screen(display.window,'Flip');
-    %WaitSecs(stim1_duration);
 
     % Write instructions & options only for all stimuli
     % (without Yes/No options)
@@ -585,31 +604,39 @@ while iTrial<nTrial
                 timedown=GetSecs;
                 interrupt_task=1;
             else
-                if  keycode(key.left)==1
+                if  keycode(key.up)==1
                     exit=1;
                     timedown=GetSecs;
-                    isLeftChoice(iTrial)=1;                                              %-1=left
+                    isUpChoice(iTrial)=1;                                              %-1=up
                     repeat=0;
-                elseif keycode(key.right)==1
+                elseif keycode(key.down)==1
                     exit=1;
                     timedown=GetSecs;
-                    isLeftChoice(iTrial)=0;                                               %1=right
+                    isUpChoice(iTrial)=0;                                               %1=down
                     repeat=0;
                 end
             end
         end
-        [xMouse,~,buttons] = recordResponse(display.window);
-        if buttons(1)~=0
-            isLeftChoice(iTrial) = sign(x-xMouse);
-            if isLeftChoice(iTrial) == -1; isLeftChoice(iTrial) = 0; end
-            choice_position(iTrial) = (xMouse-x)/x;
-            timedown=GetSecs;
-            repeat=0;
-            exit=1;
+        [xMouse, yMouse, buttons] = recordResponse(display.window);
+        if buttons(1)~=0 && yMouse > y
+                        % Check if the mouse click is above the stipple line
+            if yMouse > 4*y/4 && yMouse < 5.9*y/4
+                % Record response if mouse clicked above the stipple line
+                isUpChoice(iTrial) = 1; % Up choice
+                timedown = GetSecs;
+                repeat = 0;
+                exit = 1;
+            elseif yMouse > 6.1*y/4 && yMouse < 2*y
+                % Record response as down if clicked below stipple line
+                isUpChoice(iTrial) = 0; % Down choice
+                timedown = GetSecs;
+                repeat = 0;
+                exit = 1;
+            end
         end
         WaitSecs(waitAft_trial);
         
-        if isLeftChoice(iTrial) == sideyes(iTrial)
+        if isUpChoice(iTrial) == sideyes(iTrial)
             choicedo(iTrial) = 1;
         else
             choicedo(iTrial) = 0;
@@ -650,25 +677,25 @@ sca;
 
 %% Data saving
 %-----------------------------------------------
-varNames = {'trialNumber','itemNumberNorm', 'ratingNorm', 'itemNumberBenefit', 'ratingBenefit', 'itemNumberSanction', 'levelSanction','ratingSanction','itemNumberAversiveSanction', 'levelAversiveSanction','ratingAversiveSanction','isLeftChoice', 'choicePosition', 'isAccept', 'RT'};
-training_data = table((1:nTraining)',...
-                      training_options(1,:)', ratingsNorm_training(training_options(1,:)),...
-                      training_options(1,:)',ratingsBenefit_training(training_options(1,:)),...
-                      training_options(1,:)',training_options(3,:)',ratingsSanction_training(training_options(1,:)).*training_options(3,:)',... % in training, norm Nbr = sanction Nbr
-                      training_options(1,:)',training_options(4,:)',ratingsAversiveSanction_training(training_options(1,:)).*training_options(4,:)',...
-                      training_isLeftChoice',training_choice_position',training_choicedo',training_rt', 'VariableNames', varNames);
+varNames = {'trialNumber','itemNumberNorm', 'ratingNorm', 'itemNumberBenefit', 'ratingBenefit', 'itemNumberSanction', 'levelSanction','ratingSanction','itemNumberAversiveSanction', 'levelAversiveSanction','ratingAversiveSanction','isUpChoice', 'choicePosition', 'isAccept', 'RT'};
+% training_data = table((1:nTraining)',...
+%                       training_options(1,:)', ratingsNorm_training(training_options(1,:)),...
+%                       training_options(1,:)',ratingsBenefit_training(training_options(1,:)),...
+%                       training_options(1,:)',training_options(3,:)',ratingsSanction_training(training_options(1,:)).*training_options(3,:)',... % in training, norm Nbr = sanction Nbr
+%                       training_options(1,:)',training_options(4,:)',ratingsAversiveSanction_training(training_options(1,:)).*training_options(4,:)',...
+%                       training_isLeftChoice',training_choice_position',training_choicedo',training_rt', 'VariableNames', varNames);
 
 training_data = table((1:nTraining)',...
                       training_options(1,:)', ratingsNorm_training,...
                       training_options(1,:)',ratingsBenefit_training,...
-                      training_options(1,:)',training_options(3,:)',ratingsSanction_training(training_options(1,:)).*training_options(3,:)',... % in training, norm Nbr = sanction Nbr
-                      training_options(1,:)',training_options(4,:)',ratingsAversiveSanction_training(training_options(1,:)).*training_options(4,:)',...
-                      training_isLeftChoice',training_choice_position',training_choicedo',training_rt', 'VariableNames', varNames);
+                      training_options(1,:)',training_options(3,:)',ratingsSanction_training.*training_options(3,:)',... % in training, norm Nbr = sanction Nbr
+                      training_options(1,:)',training_options(4,:)',ratingsAversiveSanction_training.*training_options(4,:)',...
+                      training_isUpChoice',training_choice_position',training_choicedo',training_rt', 'VariableNames', varNames);
 
 %removed 'isBenefitFirstOnScreen', and training_stimOrder',
 %norm_trainingList{appariement_training{training_options(1,:),1}},  'nameNorm',
 
-varNames      = {'trialNumber','ListNumber','itemNumberNorm', 'ratingNorm', 'itemNumberBenefit', 'levelBenefit', 'ratingBenefit', 'itemNumberSanction', 'levelSanction','ratingSanction', 'itemNumberAversiveSanction', 'levelAversiveSanction','ratingAversiveSanction','isLeftChoice', 'choicePosition', 'isAccept', 'RT'};
+varNames      = {'trialNumber','ListNumber','itemNumberNorm', 'ratingNorm', 'itemNumberBenefit', 'levelBenefit', 'ratingBenefit', 'itemNumberSanction', 'levelSanction','ratingSanction', 'itemNumberAversiveSanction', 'levelAversiveSanction','ratingAversiveSanction','isUpChoice', 'choicePosition', 'isAccept', 'RT'};
 
 itemNumberNorm = appariement_testing{stimN,1};
 ratingNorm    = ratingsNorm(appariement_testing{stimN,1});
@@ -691,7 +718,7 @@ ratingSanction= ratingsSanction(stimS_Nbr).*stimS';% consider rating equal zero 
 stimAS_Nbr     = appariement_testing{stimN,6};
 ratingAversiveSanction = ratingsAversiveSanction(stimAS_Nbr).*(stimAS==1)';
 
-data          = table((1:nTrial)',ListNbUsed', itemNumberNorm,ratingNorm,stimR_Nbr', stimR', ratingBenefit,stimS_Nbr,stimS',ratingSanction,stimAS_Nbr,stimAS',ratingAversiveSanction,isLeftChoice',choice_position',choicedo',rt','VariableNames',varNames);
+data          = table((1:nTrial)',ListNbUsed', itemNumberNorm,ratingNorm,stimR_Nbr', stimR', ratingBenefit,stimS_Nbr,stimS',ratingSanction,stimAS_Nbr,stimAS',ratingAversiveSanction,isUpChoice',choice_position',choicedo',rt','VariableNames',varNames);
 
 %removed 'isBenefitFirstOnScreen', and stimOrder',
 %'nameNorm',  nameNorm =norm_testingList{appariement_testing{stimN(nTrial),1}};   ,nameNorm'
@@ -781,16 +808,19 @@ end
 
 
 if show_response
-    if logical(side_oui) % accept (oui) : right = 0, left = 1
+    if logical(side_oui) % accept (oui) : down = 0, up = 1
         win_oui = win_l; win_non = win_r;
     else; win_oui = win_r; win_non = win_l;
     end
-    DrawFormattedText(display.window,text.oui,'center',6*y/4,color_yes,max_charPline,0,0,1,0,win_oui);
-    DrawFormattedText(display.window,text.non,'center',6*y/4,color_no,max_charPline,0,0,1,0,win_non);
+    DrawFormattedText(display.window,text.oui,'center',1.30*y,color_yes,max_charPline,0,0,1,0);
+    DrawFormattedText(display.window,text.non,'center',1.70*y,color_no,max_charPline,0,0,1,0);
+    % pour version horizontale
+    % DrawFormattedText(display.window,text.oui,'center',6*y/4,color_yes,max_charPline,0,0,1,0,win_oui);
+    % DrawFormattedText(display.window,text.non,'center',6*y/4,color_no,max_charPline,0,0,1,0,win_non);
     Screen('LineStipple',display.window, 1, 2, mod(ceil((1:16)/8),2));
-    Screen('DrawLine', display.window, [255 255 255]*0.5, x,5*y/4, x,7*y/4, 3);
-    %         Screen('LineStipple',display.window, 1, 2, mod(ceil((1:16)/8),2));
-    %         Screen('DrawLine', display.window, [255 255 255]*0.5, x, y*7/5 ,  x, y*9/5, 3);
+    % Screen('DrawLine', display.window, [255 255 255]*0.5, x,5*y/4, x,7*y/4, 3);
+    Screen('DrawLine', display.window, [255 255 255]*0.5,x/2,3*y/2,3*x/2,3*y/2, 3);
+
 end
 
 end

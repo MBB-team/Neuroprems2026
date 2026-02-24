@@ -152,18 +152,47 @@ fixation_duration   = 0.5;
 maxResponseDuration = 10e3;
 
 % Extract ratings
-tempB   = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.data, 'itemNumber', 'ascend');
-tempC   = sortrows(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results.data, 'itemNumber', 'ascend');
+% Check if benefit rating task exists and has results
+if isfield(sub_data.(cfg.sessNber_str).tasks, benefit_ratingTaskName) && ...
+   isfield(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName), 'results') && ...
+   isfield(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results, 'data')
+    
+    tempB = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.data, 'itemNumber', 'ascend');
+    ratingsBenefit = tempB.rating(1:24);
+    
+    if isfield(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results, 'trainingData')
+        tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.trainingData, 'itemNumber', 'ascend');
+        ratingsBenefit_training = tempB_training.rating(1:4);
+    else
+        warning('Benefit training ratings not found - using NaN values');
+        ratingsBenefit_training = nan(4,1);
+    end
+else
+    warning('Benefit ratings not found - using NaN values');
+    ratingsBenefit = nan(24,1);
+    ratingsBenefit_training = nan(4,1);
+end
 
-tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.trainingData,...
-    'itemNumber', 'ascend');
-tempC_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results.trainingData,...
-    'itemNumber', 'ascend');
-
-ratingsBenefit = tempB.rating(1:24);
-ratingsCost    = tempC.rating(1:24);
-ratingsCost_training    = tempC_training.rating(1:4);
-ratingsBenefit_training  = tempB_training.rating(1:4);
+% Check if cost rating task exists and has results
+if isfield(sub_data.(cfg.sessNber_str).tasks, cost_ratingTaskName) && ...
+   isfield(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName), 'results') && ...
+   isfield(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results, 'data')
+    
+    tempC = sortrows(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results.data, 'itemNumber', 'ascend');
+    ratingsCost = tempC.rating(1:24);
+    
+    if isfield(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results, 'trainingData')
+        tempC_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results.trainingData, 'itemNumber', 'ascend');
+        ratingsCost_training = tempC_training.rating(1:4);
+    else
+        warning('Cost training ratings not found - using NaN values');
+        ratingsCost_training = nan(4,1);
+    end
+else
+    warning('Cost ratings not found - using NaN values');
+    ratingsCost = nan(24,1);
+    ratingsCost_training = nan(4,1);
+end
 
 clear temp*
 cd(cfg.paths.task.code) % returning to code directory

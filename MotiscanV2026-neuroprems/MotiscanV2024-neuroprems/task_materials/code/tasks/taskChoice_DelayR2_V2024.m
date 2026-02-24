@@ -134,18 +134,48 @@ trainingList = trainingList(subsample_training);
 imgTrainingR2 = imgTrainingR2(subsample_training);
 
 % Extract Ratings
-rtg_import =                                                            ...
-    sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results.data;
-temp        = sortrows(rtg_import, 'itemNumber', 'ascend');
-rtg         = temp.rating(1:24); 
-ratingRsummary = rtg;
-
-benefit_ratingTaskName = 'taskRatingR2';
-tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.trainingData,...
-    'itemNumber', 'ascend');
-ratingsBenefit_training  = tempB_training.rating(1:4);
-
-clear temp
+% Check if the participant has completed the rating task
+if isfield(sub_data.(cfg.sessNber_str).tasks, taskRating_strctName) && ...
+   isfield(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName), 'results') && ...
+   isfield(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results, 'data')
+    
+    % Participant has completed the rating task - use their ratings
+    rtg_import = sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results.data;
+    temp = sortrows(rtg_import, 'itemNumber', 'ascend');
+    rtg = temp.rating(1:24);
+    ratingRsummary = rtg;
+    
+    % Get training ratings if available
+    if isfield(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results, 'trainingData')
+        tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results.trainingData, 'itemNumber', 'ascend');
+        ratingsBenefit_training = tempB_training.rating(1:4);
+    else
+        warning('Training ratings not found - using mean control ratings from file');
+        % Load from Excel file
+        cd(cfg.paths.task.text)
+        mean_ratings_data = readmatrix('mean_control_ratings_R2.xlsx');
+        cd(cfg.paths.task.code)
+        ratingsBenefit_training = mean_ratings_data(subsample_training);
+    end
+    
+    clear temp
+    
+else
+    % Participant has NOT completed the rating task - use mean control ratings from Excel
+    warning('Participant has not completed rating task - using mean control participant ratings from file');
+    
+    % Load mean ratings from Excel file using readmatrix (more robust)
+    cd(cfg.paths.task.text)
+    mean_ratings_data = readmatrix('mean_control_ratings_R2.xlsx');
+    cd(cfg.paths.task.code)
+    
+    % Extract ratings for all 24 items
+    rtg = mean_ratings_data(1:24);
+    ratingRsummary = rtg;
+    
+    % Extract training ratings (items corresponding to subsample_training)
+    ratingsBenefit_training = mean_ratings_data(subsample_training);
+end
 
 % Training Options
 training_options = [1 2 4 1 ;
