@@ -809,17 +809,16 @@ end
 
 
 if show_response
-    if logical(side_oui) % accept (oui) : down = 0, up = 1
-        win_oui = win_l; win_non = win_r;
-    else; win_oui = win_r; win_non = win_l;
+    if mod(sub_data.sub_id,2) == 0
+    DrawFormattedText(display.window,text.oui,'center',7*y/4,color_yes,max_charPline,0,0,2,0); % oui down
+    DrawFormattedText(display.window,text.non,'center',5*y/4,color_no,max_charPline,0,0,2,0); % non up
+    else
+    DrawFormattedText(display.window,text.oui,'center',5*y/4,color_yes,max_charPline,0,0,2,0); % oui up
+    DrawFormattedText(display.window,text.non,'center',7*y/4,color_no,max_charPline,0,0,2,0); % non down
     end
-    DrawFormattedText(display.window,text.oui,'center',1.30*y,color_yes,max_charPline,0,0,1,0);
-    DrawFormattedText(display.window,text.non,'center',1.70*y,color_no,max_charPline,0,0,1,0);
-    % pour version horizontale
-    % DrawFormattedText(display.window,text.oui,'center',6*y/4,color_yes,max_charPline,0,0,1,0,win_oui);
-    % DrawFormattedText(display.window,text.non,'center',6*y/4,color_no,max_charPline,0,0,1,0,win_non);
+
+
     Screen('LineStipple',display.window, 1, 2, mod(ceil((1:16)/8),2));
-    % Screen('DrawLine', display.window, [255 255 255]*0.5, x,5*y/4, x,7*y/4, 3);
     Screen('DrawLine', display.window, [255 255 255]*0.5,x/2,3*y/2,3*x/2,3*y/2, 3);
 
 end
