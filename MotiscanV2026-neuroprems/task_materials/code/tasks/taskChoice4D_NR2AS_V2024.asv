@@ -217,30 +217,31 @@ if isfield(sub_data.(cfg.sessNber_str).tasks, 'taskRatingR2') && ...
    isfield(sub_data.(cfg.sessNber_str).tasks.taskRatingR2.results, 'data')
     
     % Participant has completed the rating task - use their ratings
-    rtg_import = sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results.data;
+    rtg_import = sub_data.(cfg.sessNber_str).tasks.taskRatingR2.results.data;
     temp = sortrows(rtg_import, 'itemNumber', 'ascend');
     ratingsBenefit = temp.rating(1:24);
     
     % Get training ratings if available
-    if isfield(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results, 'trainingData')
-        tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results.trainingData, 'itemNumber', 'ascend');
+    if isfield(sub_data.(cfg.sessNber_str).tasks.taskRatingR2.results, 'trainingData')
+        tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.taskRatingR2.results.trainingData, 'itemNumber', 'ascend');
         ratingsBenefit_training = tempB_training.rating(1:4);
     else
-        ratingsBenefit_training  = nan(1:4);
+        ratingsBenefit_training  = nan(4,1);
        
     end
     
     clear temp
     
 else
-    ratingsBenefit  = nan(24);
+    ratingsBenefit  = nan(24,1);
+    ratingsBenefit_training  = nan(4,1);
 end
 
 % Extract ratings
 % tempA = sortrows(sub_data.(cfg.sessNber_str).tasks.(norm_ratingTaskName).results.data,...
 %     'itemNumber', 'ascend');
-tempB = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.data,...
-    'itemNumber', 'ascend');
+%tempB = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.data,...
+    %'itemNumber', 'ascend');
 % tempC = sortrows(sub_data.(cfg.sessNber_str).tasks.(sanction_ratingTaskName).results.data,...
 %     'itemNumber', 'ascend');
 % tempD = sortrows(sub_data.(cfg.sessNber_str).tasks.(aversivesanction_ratingTaskName).results.data,...
@@ -248,8 +249,8 @@ tempB = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).resu
 
 % tempA_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(norm_ratingTaskName).results.trainingData,...
 %     'itemNumber', 'ascend');
-tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.trainingData,...
-    'itemNumber', 'ascend');
+%tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.trainingData,...
+    %'itemNumber', 'ascend');
 % tempC_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(sanction_ratingTaskName).results.trainingData,...
 %     'itemNumber', 'ascend');
 % tempD_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(aversivesanction_ratingTaskName).results.trainingData,...
@@ -808,17 +809,16 @@ end
 
 
 if show_response
-    if logical(side_oui) % accept (oui) : down = 0, up = 1
-        win_oui = win_l; win_non = win_r;
-    else; win_oui = win_r; win_non = win_l;
+    if side_oui == 0
+    DrawFormattedText(display.window,text.oui,'center',7*y/4,color_yes,max_charPline,0,0,2,0); % oui down
+    DrawFormattedText(display.window,text.non,'center',5*y/4,color_no,max_charPline,0,0,2,0); % non up
+    else
+    DrawFormattedText(display.window,text.oui,'center',5*y/4,color_yes,max_charPline,0,0,2,0); % oui up
+    DrawFormattedText(display.window,text.non,'center',7*y/4,color_no,max_charPline,0,0,2,0); % non down
     end
-    DrawFormattedText(display.window,text.oui,'center',1.30*y,color_yes,max_charPline,0,0,1,0);
-    DrawFormattedText(display.window,text.non,'center',1.70*y,color_no,max_charPline,0,0,1,0);
-    % pour version horizontale
-    % DrawFormattedText(display.window,text.oui,'center',6*y/4,color_yes,max_charPline,0,0,1,0,win_oui);
-    % DrawFormattedText(display.window,text.non,'center',6*y/4,color_no,max_charPline,0,0,1,0,win_non);
+
+
     Screen('LineStipple',display.window, 1, 2, mod(ceil((1:16)/8),2));
-    % Screen('DrawLine', display.window, [255 255 255]*0.5, x,5*y/4, x,7*y/4, 3);
     Screen('DrawLine', display.window, [255 255 255]*0.5,x/2,3*y/2,3*x/2,3*y/2, 3);
 
 end

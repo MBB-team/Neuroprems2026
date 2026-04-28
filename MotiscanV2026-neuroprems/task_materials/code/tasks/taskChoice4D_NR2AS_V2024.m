@@ -809,12 +809,12 @@ end
 
 
 if show_response
-    if mod(sub_data.sub_id,2) == 0
-    DrawFormattedText(display.window,text.oui,'center',7*y/4,color_yes,max_charPline,0,0,2,0); % oui down
-    DrawFormattedText(display.window,text.non,'center',5*y/4,color_no,max_charPline,0,0,2,0); % non up
+    if side_oui == 0
+    DrawFormattedText(display.window,text.oui,'center',1.70*y,color_yes,max_charPline,0,0,2,0); % oui down
+    DrawFormattedText(display.window,text.non,'center',1.30*y,color_no,max_charPline,0,0,2,0); % non up
     else
-    DrawFormattedText(display.window,text.oui,'center',5*y/4,color_yes,max_charPline,0,0,2,0); % oui up
-    DrawFormattedText(display.window,text.non,'center',7*y/4,color_no,max_charPline,0,0,2,0); % non down
+    DrawFormattedText(display.window,text.oui,'center',1.30*y,color_yes,max_charPline,0,0,2,0); % oui up
+    DrawFormattedText(display.window,text.non,'center',1.70*y,color_no,max_charPline,0,0,2,0); % non down
     end
 
 
