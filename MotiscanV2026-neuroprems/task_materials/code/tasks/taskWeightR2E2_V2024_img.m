@@ -62,19 +62,14 @@ rectImgInstruction = [0 0 2*x 2*y];
 
 % Load stimuli
 %-----------------------------------------------
-taskName = ['WeightR2E2'];
-taskChoice_strctName = ['taskWeightR2E2'];
+taskName = 'WeightR2E2';
+taskChoice_strctName = 'taskWeightR2E2';
 
 benefit_ratingTaskName = 'taskRatingR2';
 cost_ratingTaskName    = 'taskRatingE2';
 
-benefitTrainingList_file = 'rewards_training2.xlsx';
-costTrainingList_file    = 'efforts_training2.xlsx';
-
 benefitTestingList_file = 'rewards2.xlsx';
 costTestingList_file     = 'efforts2.xlsx';
-
-appariementTrainingList_file = 'appariementR2E2_training.xlsx';
 
 appariementTestingList_file = 'appariementR2E2.xlsx';
  
@@ -94,7 +89,6 @@ cd(cfg.paths.task.text) % extracting text
 
 % recurring textstring
 text.instruc = 'Instructions';
-text.training = 'Entrainement';
 text.appuyer = 'appuyer sur une touche pour continuer...';
 text.pretDebut = 'Prêt à débuter ?';
 text.accept = 'J''accepte de';
@@ -115,16 +109,7 @@ for i=1:24
     imgItemR2(i).texture = Screen('MakeTexture',display.window,imread(['img_rewards2_' num2str(i) '.bmp']));
 end
 
-    imgTrainingE2 = struct('texture',{},'position',{});
-    imgTrainingR2 = struct('texture',{},'position',{});
-for i=1:6
-    imgTrainingE2(i).texture = Screen('MakeTexture',display.window,imread(['img_efforts_training2_' num2str(i) '.bmp']));
-    imgTrainingR2(i).texture = Screen('MakeTexture',display.window,imread(['img_rewards_training2_' num2str(i) '.bmp']));
-end
-
-% training items
-benefit_trainingList = readstim(benefitTrainingList_file)';
-cost_trainingList    = readstim(costTrainingList_file)';
+% items
 benefit_testingList  = readstim(benefitTestingList_file)';
 cost_testingList     = readstim(costTestingList_file)';
 appariement_testing  = readtable(appariementTestingList_file);
@@ -132,19 +117,9 @@ appariement_testing  = readtable(appariementTestingList_file);
 % sample list adaptation
 % Adaptation of reward and effort lists for the NeuroPrems study
 
-subsampleR_training = [1 2 3 5];
-subsampleE_training = [1 2 3 4];
-benefit_trainingList = benefit_trainingList(subsampleR_training);
-cost_trainingList    = cost_trainingList(subsampleE_training);
-appariement_training = [ 3 1 4 2 ;1:4]'; % orthogonalize R subcat and E subcat
-                         
-imgTrainingE2 = imgTrainingE2(subsampleE_training);
-imgTrainingR2 = imgTrainingR2(subsampleR_training);
-
 % Experimental conditions
 %-----------------------------------------------
-nTrial      = 24;
-nTraining   = 4;%6;
+nTrial      = 20;
 
 % timing variables
 blanktime           = 1;
@@ -152,46 +127,33 @@ fixation_duration   = 0.5;
 maxResponseDuration = 10e3;
 
 % Extract ratings
-% Check if benefit rating task exists and has results
+% Item numbers are a subset of 1..24 with gaps (removed items), so we index
+% by itemNumber, not by row position. Slots for removed items stay NaN.
+
+% Benefit ratings
 if isfield(sub_data.(cfg.sessNber_str).tasks, benefit_ratingTaskName) && ...
    isfield(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName), 'results') && ...
    isfield(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results, 'data')
-    
-    tempB = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.data, 'itemNumber', 'ascend');
-    ratingsBenefit = tempB.rating(1:24);
-    
-    if isfield(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results, 'trainingData')
-        tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.trainingData, 'itemNumber', 'ascend');
-        ratingsBenefit_training = tempB_training.rating(1:4);
-    else
-        warning('Benefit training ratings not found - using NaN values');
-        ratingsBenefit_training = nan(4,1);
-    end
+
+    tempB = sub_data.(cfg.sessNber_str).tasks.(benefit_ratingTaskName).results.data;
+    ratingsBenefit = nan(24,1);                          % full 1..24 range
+    ratingsBenefit(tempB.itemNumber) = tempB.rating;     % place each rating at its item number
 else
-    warning('Benefit ratings not found - using NaN values');
+    fprintf('No reward rating task - ratingBenefit column will be NaN (expected).\n');
     ratingsBenefit = nan(24,1);
-    ratingsBenefit_training = nan(4,1);
 end
 
-% Check if cost rating task exists and has results
+% Cost ratings
 if isfield(sub_data.(cfg.sessNber_str).tasks, cost_ratingTaskName) && ...
    isfield(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName), 'results') && ...
    isfield(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results, 'data')
-    
-    tempC = sortrows(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results.data, 'itemNumber', 'ascend');
-    ratingsCost = tempC.rating(1:24);
-    
-    if isfield(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results, 'trainingData')
-        tempC_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results.trainingData, 'itemNumber', 'ascend');
-        ratingsCost_training = tempC_training.rating(1:4);
-    else
-        warning('Cost training ratings not found - using NaN values');
-        ratingsCost_training = nan(4,1);
-    end
+
+    tempC = sub_data.(cfg.sessNber_str).tasks.(cost_ratingTaskName).results.data;
+    ratingsCost = nan(24,1);                             % full 1..24 range
+    ratingsCost(tempC.itemNumber) = tempC.rating;        % place each rating at its item number
 else
-    warning('Cost ratings not found - using NaN values');
+    fprintf('No effort rating task - ratingCost column will be NaN (expected).\n');
     ratingsCost = nan(24,1);
-    ratingsCost_training = nan(4,1);
 end
 
 clear temp*
@@ -204,20 +166,10 @@ index = index(randperm(size(index, 1)), :); % random permutation of rows
 stimR2 = index(:,2);
 stimE2 = index(:,1);
 
-training_options = [ 1 2 3 4 ;% effort number
-                    1 2 3 4 ]; % reward number
-
 % Data preparation
 %-----------------------------------------------
 % Inter-subject side randomization
 sidesub = mod(sub_data.sub_id,2);
-
-% training
-training_sideyes         = sidesub.*(ones(1,nTraining)); % 0=down, 1=up
-training_isUpChoice      = nan(1,nTraining);
-training_choice_position = nan(1,nTraining);
-training_choicedo        = nan(1,nTraining);
-training_rt              = nan(1,nTraining);
 
 % testing
 isUpChoice      = nan(1,nTrial);
@@ -226,9 +178,8 @@ choicedo        = nan(1,nTrial);
 rt              = nan(1,nTrial);
 sideyes         = sidesub.*(ones(1,nTrial)); % 0=down, 1=up
 
-%% Training
+%% Testing
 %-----------------------------------------------
-% display
 DrawMyText(display.window,text.instruc,ftsz_big,[255 255 255],[x,y]);
 DrawMyText(display.window,text.appuyer,ftsz_small,[100 100 100],[x,H*4/5]);
 Screen(display.window,'Flip');
@@ -243,138 +194,6 @@ for i=1:1
     KbWait;
 end
 
-DrawMyText(display.window,text.training,ftsz_big,[255 255 255],[x,y]);
-DrawMyText(display.window,text.appuyer,ftsz_small,[100 100 100],[x,H*4/5]);
-Screen(display.window,'Flip');
-WaitSecs(0.2);
-KbWait;
-
-% Trial structure
-%-----------------------------------------------
-stoptask=0;iTrial=0; repeat=0;
-while iTrial<nTraining
-    
-    if repeat==0
-        iTrial=iTrial+1;
-    end
-    
-    if stoptask
-        break
-    end
-    
-    % int
-    Screen('DrawTexture',display.window,cross,[],rectcross);
-    KbReleaseWait;
-    Screen(display.window,'Flip');
-    WaitSecs(fixation_duration);
-    wait4release()
-
-    text.E2 = cost_trainingList{training_options(1,iTrial)}; % Effort number
-    text.R2 = benefit_trainingList{training_options(2,iTrial)}; % Reward number
-
-    img.E2 = imgTrainingE2(training_options(1,iTrial)).texture;
-    img.R2 = imgTrainingR2(training_options(2,iTrial)).texture;
-    
-    % Write instructions & options
-    disp_trial(display,ftsz_small,max_charPline,text,img,win_l,win_r,training_sideyes(iTrial),sub_data)
-    startime = Screen(display.window,'Flip');
-
-    % Check Response
-    exit=0;
-    while exit==0
-        % refresh screen
-        disp_trial(display,ftsz_small,max_charPline,text,img,win_l,win_r,training_sideyes(iTrial),sub_data)
-        Screen(display.window,'Flip');
-
-        % Record Response
-        [keyisdown, ~, keycode] = KbCheck;
-        if keyisdown==1
-            % monitor validation & exit
-            if keycode(key.escape)==1
-                exit=1;
-                timedown=GetSecs;
-                stoptask=1;
-            else
-                if  keycode(key.up)==1
-                    exit=1;
-                    timedown=GetSecs;
-                    training_isUpChoice(iTrial)=1;                                              %-1=up
-                    repeat=0;
-                elseif keycode(key.down)==1
-                    exit=1;
-                    timedown=GetSecs;
-                    training_isUpChoice(iTrial)=0;                                               %1=down
-                    repeat=0;
-                end
-            end
-        end
-        [xMouse, yMouse, buttons] = recordResponse(display.window);
-
-        % Check if the mouse click is within the lower half of the screen
-        if buttons(1) ~= 0 && yMouse > y/2
-            % Check if the mouse click is below the stipple line
-            if yMouse > 4*y/4 && yMouse < 5.9*y/4
-                % Record response if mouse clicked below the stipple line
-                training_isUpChoice(iTrial) = 1; % Up choice
-                timedown = GetSecs;
-                repeat = 0;
-                exit = 1;
-            elseif buttons(1) ~= 0 && yMouse > 6.1*y/4 && yMouse < 8*y/4
-                % Record response as down if clicked above stipple line but within upper half of the screen
-                training_isUpChoice(iTrial) = 0; % Down choice
-                timedown = GetSecs;
-                repeat = 0;
-                exit = 1;
-            end
-        end
-
-        WaitSecs(0.007);
-
-        if training_isUpChoice(iTrial) == training_sideyes(iTrial)
-            training_choicedo(iTrial) = 1;
-        else
-            training_choicedo(iTrial) = 0;
-        end
-
-        % Monitor maximal response time
-        timePassed = GetSecs-startime;
-        if timePassed>maxResponseDuration
-            exit=1;
-            repeat=repeat+1;
-        end
-    end
-
-    if repeat==0
-        training_rt(iTrial)=timedown-startime;
-
-        % Show Response
-        switch training_choicedo(iTrial)
-            case 0 % response = no
-                yes_color = [255 255 255];
-                no_color = [0 255 0];
-            case 1 % response = yes
-                no_color = [255 255 255];
-                yes_color = [0 255 0];
-        end
-
-        disp_trial(display,ftsz_small,max_charPline,text,img,win_l,win_r,   ...
-            training_sideyes(iTrial),sub_data,yes_color,no_color)
-        Screen(display.window,'Flip');
-        tresponse = GetSecs;
-        while GetSecs <= tresponse + blanktime
-
-        end
-    else
-        % instruction: speed-up warning
-        DrawMyText(display.window,text.timesUp,ftsz_big,[255 255 255],[x,y]);
-        DrawMyText(display.window,text.faster,ftsz_big,[255 255 255],[x,y*1.2]);
-        Screen(display.window,'Flip');
-        WaitSecs(blanktime+1);
-    end
-end
-
-%% Testing
-%-----------------------------------------------
 % instructions:  start
 DrawMyText(display.window,text.pretDebut,ftsz_big,[255 255 255],[x,y]);
 DrawMyText(display.window,text.appuyer,ftsz_small,[100 100 100],[x,H*4/5]);
@@ -443,23 +262,21 @@ while iTrial<nTrial
         end
 
          [xMouse, yMouse, buttons] = recordResponse(display.window);
-                % Check if the mouse click is within the lower half of the screen
-                if buttons(1) ~= 0 && yMouse > y/2
-                    % Check if the mouse click is below the stipple line
-                    if yMouse > 4*y/4 && yMouse < 5.9*y/4
-                        % Record response if mouse clicked below the stipple line
-                        isUpChoice(iTrial) = 1; % Up choice
-                        timedown = GetSecs;
-                        repeat = 0;
-                        exit = 1;
-                    elseif buttons(1) ~= 0 &&  yMouse > 6.1*y/4 && yMouse < 8*y/4
-                        % Record response as down if clicked above stipple line but within upper half of the screen
-                        isUpChoice(iTrial) = 0; % Down choice
-                        timedown = GetSecs;
-                        repeat = 0;
-                        exit = 1;
-                    end
+            if buttons(1) ~= 0 && yMouse > y/2
+                if yMouse > 4*y/4 && yMouse < 5.9*y/4
+                    isUpChoice(iTrial) = 1; % Up choice
+                    choice_position(iTrial) = (yMouse - y)/y; 
+                    timedown = GetSecs;
+                    repeat = 0;
+                    exit = 1;
+                elseif buttons(1) ~= 0 &&  yMouse > 6.1*y/4 && yMouse < 8*y/4
+                    isUpChoice(iTrial) = 0; % Down choice
+                    choice_position(iTrial) = (yMouse - y)/y; 
+                    timedown = GetSecs;
+                    repeat = 0;
+                    exit = 1;
                 end
+            end
 
         WaitSecs(0.007);
         
@@ -513,20 +330,13 @@ sca;
 %% Data saving
 %-----------------------------------------------
 % data creation
-varNames      = {'trialNumber', 'itemNumberBenefit','ratingBenefit','itemNumberCost','ratingCost','isUpChoice', 'choicePosition', 'isAccept', 'RT'};
-ratingBenefit_training = ratingsBenefit_training(training_options(2,:));
-trainingBenefit = [1, 2, 3, 5];
-ratingCost_training = ratingsCost_training(training_options(1,:));
-trainingCost = training_options(1,:);
-training_data = table((1:nTraining)', trainingBenefit', ratingBenefit_training, trainingCost', ratingCost_training, training_isUpChoice',training_choice_position',training_choicedo',training_rt', 'VariableNames', varNames);
-
 varNames      = {'trialNumber', 'itemNumberBenefit', 'ratingBenefit', 'itemNumberCost', 'ratingCost', 'isUpChoice', 'choicePosition', 'isAccept', 'RT'};
 ratingBenefit = ratingsBenefit(stimR2(:));
 ratingCost    = ratingsCost(stimE2(:));
 data          = table((1:nTrial)',stimR2,ratingBenefit,stimE2,ratingCost,isUpChoice',choice_position',choicedo',rt','VariableNames',varNames);
 
 % saving
-sub_data.(cfg.sessNber_str).tasks.(taskChoice_strctName).results = struct('trainingData', training_data, 'data', data);
+sub_data.(cfg.sessNber_str).tasks.(taskChoice_strctName).results = struct('data', data);
 end
 
 function [] = disp_trial(display,ftsz,max_charPline,text,img,win_l,win_r,   ...

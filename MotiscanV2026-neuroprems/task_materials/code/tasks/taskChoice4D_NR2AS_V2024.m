@@ -83,24 +83,6 @@ norm_ratingTaskName = 'taskRatingN';
 sanction_ratingTaskName    = 'taskRatingS'; %audience
 aversivesanction_ratingTaskName = 'taskRatingAS';
 
-% training items
-normTrainingList_file = 'SocialNormViolations_training.xlsx';
-benefitTrainingList_file = 'rewards_training2.xlsx';
-sanctionTrainingList_file = 'SocialSanctions_training.xlsx'; %audience
-aversivesanctionTrainingList_file = 'aversivesanctions_training.xlsx';
-appariementTrainingList_file = 'appariement4D_NR2AS_training.xlsx';
-
-norm_trainingList = readstim(normTrainingList_file)'; 
-norm_trainingList = cellfun(@(x) strrep(x, '\n', ''), norm_trainingList, 'UniformOutput', false);
-
-benefit_trainingList = readstim(benefitTrainingList_file)';
-
-sanction_trainingList = readstim(sanctionTrainingList_file)'; %audience
-sanction_trainingList = cellfun(@(x) strrep(x, '\n', ''), sanction_trainingList, 'UniformOutput', false);
-
-aversivesanction_trainingList = readstim(aversivesanctionTrainingList_file)';
-appariement_training = readtable(appariementTrainingList_file);
-
 % testing items
 normTestingList_file = 'SocialNormViolations.xlsx';
 benefitTestingList_file = 'rewards2.xlsx';
@@ -120,7 +102,6 @@ sanction_testingList = cellfun(@(x) strrep(x, '\n', ''), sanction_testingList, '
 
 aversivesanction_testingList = readstim(aversivesanctionTestingList_file)';
 %appariement_testing = readtable(appariementTestingList_file);
-
 
 
 %cd(cfg.paths.task.images); % enter img dir
@@ -156,31 +137,10 @@ for i=1:12
 end
     
 
-imgTrainingN = struct('texture',{},'position',{});
-imgTrainingR = struct('texture',{},'position',{});
-imgTrainingS0 = struct('texture',{},'position',{});
-imgTrainingS1 = struct('texture',{},'position',{});
-imgTrainingAS0 = struct('texture',{},'position',{});
-imgTrainingAS1 = struct('texture',{},'position',{});
-imgTrainingAS2 = struct('texture',{},'position',{});
-
-for i=1:6
-    imgTrainingN(i).texture = Screen('MakeTexture',display.window,imread(['img_SocialNormViolations_training_' num2str(i) '.bmp']));
-    imgTrainingR(i).texture = Screen('MakeTexture',display.window,imread(['img_rewards_training2_' num2str(i) '.bmp']));
-    imgTrainingS0(i).texture = Screen('MakeTexture',display.window,imread(['img_SocialSanctions0_training_' num2str(i) '.bmp']));
-    imgTrainingS1(i).texture = Screen('MakeTexture',display.window,imread(['img_SocialSanctions1_training_' num2str(i) '.bmp']));
-    imgTrainingAS0(i).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction0_training_' num2str(i) '.bmp']));
-    imgTrainingAS1(i).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction1_training_' num2str(i) '.bmp']));
-    imgTrainingAS2(i).texture = Screen('MakeTexture',display.window,imread(['img_AversiveSanction2_training_' num2str(i) '.bmp']));
-end
-    
-
-
 %cd(cfg.paths.task.text) % extracting text
 
 % recurring textstring
 text.instruc = 'Instructions';
-text.training = 'Entrainement';
 text.appuyer = 'appuyer sur une touche pour continuer...';
 text.pretDebut = 'Prêt à débuter ?';
 text.accept = 'Je pourrais'; % text.accept = 'Il pourrait m''arriver de';
@@ -192,12 +152,9 @@ text.non = 'NON';
 text.timesUp = 'Temps coul !';
 text.faster = 'Rpondez plus rapidement svp.';
 
-
-
 % Experimental conditions
 %-----------------------------------------------
 nTrial      = 24;
-nTraining   = 4;%6;
 
 % timing variables
 ITI_duration = 0.5;
@@ -215,26 +172,12 @@ stim2_duration = 3; % second option(s) on screen
 if isfield(sub_data.(cfg.sessNber_str).tasks, 'taskRatingR2') && ...
    isfield(sub_data.(cfg.sessNber_str).tasks.taskRatingR2, 'results') && ...
    isfield(sub_data.(cfg.sessNber_str).tasks.taskRatingR2.results, 'data')
-    
-    % Participant has completed the rating task - use their ratings
+
     rtg_import = sub_data.(cfg.sessNber_str).tasks.taskRatingR2.results.data;
-    temp = sortrows(rtg_import, 'itemNumber', 'ascend');
-    ratingsBenefit = temp.rating(1:24);
-    
-    % Get training ratings if available
-    if isfield(sub_data.(cfg.sessNber_str).tasks.taskRatingR2.results, 'trainingData')
-        tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.taskRatingR2.results.trainingData, 'itemNumber', 'ascend');
-        ratingsBenefit_training = tempB_training.rating(1:4);
-    else
-        ratingsBenefit_training  = nan(4,1);
-       
-    end
-    
-    clear temp
-    
+    ratingsBenefit = nan(24,1);                              % full 1..24 range
+    ratingsBenefit(rtg_import.itemNumber) = rtg_import.rating; % place at item number
 else
-    ratingsBenefit  = nan(24,1);
-    ratingsBenefit_training  = nan(4,1);
+    ratingsBenefit = nan(24,1);
 end
 
 % Extract ratings
@@ -262,14 +205,6 @@ ratingsNorm     = nan(24,1); % No ratingN for neuroprems. Use pilot ratings from
 ratingsSanction = nan(12,1); % No ratingS for neuroprems. Use pilot ratings from controls.
 %ratingsAversiveSanction = tempD.rating(1:12);
 ratingsAversiveSanction = nan(12,1); % No ratingAS for neuroprems. Use pilot ratings from controls.
-
-%ratingsNorm_training    = tempA_training.rating(1:6);
-ratingsNorm_training     = nan(4,1); % No ratingN for neuroprems. Use pilot ratings from controls.
-%ratingsSanction_training = tempC_training.rating(1:6);
-ratingsSanction_training = nan(4,1); % No ratingS for neuroprems. Use pilot ratings from controls.
-%ratingsAversiveSanction_training = tempD_training.rating(1:6);
-ratingsAversiveSanction_training = nan(4,1); % No ratingAS for neuroprems. Use pilot ratings from controls.
-
 
 clear temp*
 %cd(cfg.paths.task.code) % returning to code directory
@@ -312,28 +247,11 @@ stimR = stimR(index);
 stimS = stimS(index);
 stimAS = stimAS(index);
 
-% training_options = [1 2 3 4 5 6 ; % norm number
-%                     1 3 2 2 3 1 ; % reward level
-%                     0 1 0 1 0 1 ; % audience level
-%                     0 1 2 0 2 1]; % AS level
-
-training_options = [1 2 3 5; % norm number
-                    1 3 2 2; % reward level
-                    0 1 0 1; % audience level
-                    0 1 2 0]; % AS level
-
 
 % Data preparation
 %-----------------------------------------------
 % Inter-subject side randomization
 sidesub = mod(sub_data.sub_id,2);
-
-% training
-training_sideyes         = sidesub.*(ones(1,nTraining)); % 0=down, 1=up
-training_isUpChoice    = nan(1,nTraining);
-training_choice_position = nan(1,nTraining);
-training_choicedo        = nan(1,nTraining);
-training_rt              = nan(1,nTraining);
 
 % testing
 isUpChoice    = nan(1,nTrial);
@@ -342,9 +260,9 @@ choicedo        = nan(1,nTrial);
 rt              = nan(1,nTrial);
 sideyes         = sidesub.*(ones(1,nTrial)); % 0=down, 1=up
 
-
-%% Training
+%% Testing
 %-----------------------------------------------
+% instructions:  start
 % display
 DrawMyText(display.window,text.instruc,ftsz_big,[255 255 255],[x,y]);
 DrawMyText(display.window,text.appuyer,ftsz_small,[100 100 100],[x,H*4/5]);
@@ -360,173 +278,6 @@ for i=1:2
     KbWait;
 end
 
-DrawMyText(display.window,text.training,ftsz_big,[255 255 255],[x,y]);
-DrawMyText(display.window,text.appuyer,ftsz_small,[100 100 100],[x,H*4/5]);
-Screen(display.window,'Flip');
-WaitSecs(waitAft_bigTtl);
-KbWait;
-
-% Trial structure
-%-----------------------------------------------
-interrupt_task=0;iTrial=0; repeat=0;
-while iTrial<nTraining
-    
-    if repeat==0
-        iTrial=iTrial+1;
-    end
-    
-    if interrupt_task
-        break
-    end
-    
-    % int
-    Screen('DrawTexture',display.window,cross,[],rectcross);
-    KbReleaseWait;
-    Screen(display.window,'Flip');
-    WaitSecs(ITI_duration);
-    wait4release()
-    
-    text.N = norm_trainingList{appariement_training{training_options(1,iTrial),1}}; % Norm number
-    text.R = benefit_trainingList{appariement_training{training_options(1,iTrial),1+training_options(2,iTrial)}}; % Reward number
-    text.S = sanction_trainingList{appariement_training{training_options(1,iTrial),1},1+training_options(3,iTrial)}; % Audience {number,level}
-    text.AS = aversivesanction_trainingList{appariement_training{training_options(1,iTrial),1},1+training_options(4,iTrial)}; %a verifier avec RLB
-
-%     img.(dim) = imgTrainingN(appariement_training{training_options(1,iTrial),1}).texture;
-    img.N = imgTrainingN(appariement_training{training_options(1,iTrial),1}).texture;
-    img.R = imgTrainingR(appariement_training{training_options(1,iTrial),1+training_options(2,iTrial)}).texture;
-    
-    switch training_options(3,iTrial)
-        case 0
-            img.S = imgTrainingS0(appariement_training{training_options(1,iTrial),1}).texture;
-        case 1
-            img.S = imgTrainingS1(appariement_training{training_options(1,iTrial),1}).texture;
-    end
-
-     switch training_options(4,iTrial)
-        case 0
-            img.AS = imgTrainingAS0(appariement_training{training_options(1,iTrial),1}).texture; %% to check
-        case 1
-            img.AS = imgTrainingAS1(appariement_training{training_options(1,iTrial),1}).texture; %% to check
-         case 2
-            img.AS = imgTrainingAS2(appariement_training{training_options(1,iTrial),1}).texture; 
-    end
-    
-
-    % Write instructions & options only for appetitive or aversive stimuli
-    % (without Yes/No options) % we don't do it anymore
-    %disp_trial(display,ftsz_small,max_charPline,text,img,win_l,win_r,training_sideyes(iTrial),training_stimOrder(iTrial),0);
-    %startime = Screen(display.window,'Flip');
-    %WaitSecs(stim1_duration);
-
-    % Write instructions & options only for all stimuli
-    % (without Yes/No options)
-    disp_trial(display,ftsz_small,max_charPline,text,img,win_l,win_r,training_sideyes(iTrial),3,0);
-    startime = Screen(display.window,'Flip');
-    %Screen(display.window,'Flip');
-    WaitSecs(stim2_duration);
-
-    % Write instructions & options only for all stimuli
-    % (With Yes/No options)
-    disp_trial(display,ftsz_small,max_charPline,text,img,win_l,win_r,training_sideyes(iTrial),3,1);
-    Screen(display.window,'Flip');
-
-    % Check Response
-    exit=0;
-    while exit==0
-        % refresh screen
-        disp_trial(display,ftsz_small,max_charPline,text,img,win_l,win_r,training_sideyes(iTrial),3,1)
-        Screen(display.window,'Flip');
-        
-        % Record Response
-        [keyisdown, ~, keycode] = KbCheck;
-        if keyisdown==1
-            % monitor validation & exit
-            if keycode(key.escape)==1
-                exit=1;
-                timedown=GetSecs;
-                interrupt_task=1;
-            else
-                if  keycode(key.up)==1
-                    exit=1;
-                    timedown=GetSecs;
-                    training_isUpChoice(iTrial)=1;                                              %-1=up
-                    repeat=0;
-                elseif keycode(key.down)==1
-                    exit=1;
-                    timedown=GetSecs;
-                    training_isUpChoice(iTrial)=0;                                               %1=down
-                    repeat=0;
-                end
-            end
-        end
-        [xMouse, yMouse, buttons] = recordResponse(display.window);
-
-         % Check if the mouse click is within the lower half of the screen
-        if buttons(1)~=0 && yMouse > y
-            % Check if the mouse click is above the stipple line
-            if yMouse > 4*y/4 && yMouse < 5.9*y/4
-                % Record response if mouse clicked above the stipple line
-                training_isUpChoice(iTrial) = 1; % Up choice
-                timedown = GetSecs;
-                repeat = 0;
-                exit = 1;
-            elseif yMouse > 6.1*y/4 && yMouse < 2*y
-                % Record response as down if clicked below stipple line 
-                training_isUpChoice(iTrial) = 0; % Down choice
-                timedown = GetSecs;
-                repeat = 0;
-                exit = 1;
-            end
-        end
-
-        %     training_isLeftChoice(iTrial) = sign(x-xMouse);
-        %     if training_isLeftChoice(iTrial) == -1; training_isLeftChoice(iTrial) = 0; end
-        %     training_choice_position(iTrial) = (xMouse-x)/x;
-        %     timedown=GetSecs;
-        %     repeat=0;
-        %     exit=1;
-        % 
-        % end
-        WaitSecs(waitAft_trial);
-        
-        if training_isUpChoice(iTrial) == training_sideyes(iTrial)
-            training_choicedo(iTrial) = 1;
-        else
-            training_choicedo(iTrial) = 0;
-        end
-        
-        % Monitor maximal response time
-        timePassed = GetSecs-startime;
-        if timePassed>maxResponseDuration
-            exit=1;
-            repeat=repeat+1;
-        end
-    end
-    
-    if repeat==0
-        training_rt(iTrial)=timedown-startime;
-        
-        % Show Response
-        [yes_color,no_color] = color_yesno(training_choicedo(iTrial));
-        disp_trial(display,ftsz_small,max_charPline,text,img,win_l,win_r,   ...
-            training_sideyes(iTrial),3,1,yes_color,no_color)
-        Screen(display.window,'Flip');
-        tresponse = GetSecs;
-        while GetSecs <= tresponse + blanktime
-            
-        end
-    else
-        % instruction: speed-up warning
-        DrawMyText(display.window,text.timesUp,ftsz_big,[255 255 255],[x,y]);
-        DrawMyText(display.window,text.faster,ftsz_big,[255 255 255],[x,y*1.2]);
-        Screen(display.window,'Flip');
-        WaitSecs(blanktime+1);
-    end
-end
-
-%% Testing
-%-----------------------------------------------
-% instructions:  start
 DrawMyText(display.window,text.pretDebut,ftsz_big,[255 255 255],[x,y]);
 DrawMyText(display.window,text.appuyer,ftsz_small,[100 100 100],[x,H*4/5]);
 Screen(display.window,'Flip');
@@ -678,24 +429,6 @@ sca;
 
 %% Data saving
 %-----------------------------------------------
-varNames = {'trialNumber','itemNumberNorm', 'ratingNorm', 'itemNumberBenefit', 'ratingBenefit', 'itemNumberSanction', 'levelSanction','ratingSanction','itemNumberAversiveSanction', 'levelAversiveSanction','ratingAversiveSanction','isUpChoice', 'choicePosition', 'isAccept', 'RT'};
-% training_data = table((1:nTraining)',...
-%                       training_options(1,:)', ratingsNorm_training(training_options(1,:)),...
-%                       training_options(1,:)',ratingsBenefit_training(training_options(1,:)),...
-%                       training_options(1,:)',training_options(3,:)',ratingsSanction_training(training_options(1,:)).*training_options(3,:)',... % in training, norm Nbr = sanction Nbr
-%                       training_options(1,:)',training_options(4,:)',ratingsAversiveSanction_training(training_options(1,:)).*training_options(4,:)',...
-%                       training_isLeftChoice',training_choice_position',training_choicedo',training_rt', 'VariableNames', varNames);
-
-training_data = table((1:nTraining)',...
-                      training_options(1,:)', ratingsNorm_training,...
-                      training_options(1,:)',ratingsBenefit_training,...
-                      training_options(1,:)',training_options(3,:)',ratingsSanction_training.*training_options(3,:)',... % in training, norm Nbr = sanction Nbr
-                      training_options(1,:)',training_options(4,:)',ratingsAversiveSanction_training.*training_options(4,:)',...
-                      training_isUpChoice',training_choice_position',training_choicedo',training_rt', 'VariableNames', varNames);
-
-%removed 'isBenefitFirstOnScreen', and training_stimOrder',
-%norm_trainingList{appariement_training{training_options(1,:),1}},  'nameNorm',
-
 varNames      = {'trialNumber','ListNumber','itemNumberNorm', 'ratingNorm', 'itemNumberBenefit', 'levelBenefit', 'ratingBenefit', 'itemNumberSanction', 'levelSanction','ratingSanction', 'itemNumberAversiveSanction', 'levelAversiveSanction','ratingAversiveSanction','isUpChoice', 'choicePosition', 'isAccept', 'RT'};
 
 itemNumberNorm = appariement_testing{stimN,1};
@@ -735,7 +468,7 @@ else; sub_data.(cfg.sessNber_str).tasks.taskChoice4DNR2AS.completed...
         = true;
 end
 sub_data.(cfg.sessNber_str).tasks.taskChoice4DNR2AS.results =      ...
-    struct('trainingData', training_data, 'data', data);
+    struct('data', data);
     
 end
 

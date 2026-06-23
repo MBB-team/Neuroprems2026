@@ -84,7 +84,6 @@ cd(cfg.paths.task.text) % extracting text
 
 % text items
 itemList = readstim('efforts2.xlsx');
-trainingList = readstim('efforts_training2.xlsx');
 
 cd(cfg.paths.task.code) % returning to code directory
 
@@ -93,29 +92,20 @@ imgItem = struct('texture',{},'position',{});
 for i=1:24
     imgItem(i).texture = Screen('MakeTexture',display.window,imread(['img_efforts2_' num2str(i) '.bmp']));
 end
-imgTraining = struct('texture',{},'position',{});
-for i=1:6
-    imgTraining(i).texture = Screen('MakeTexture',display.window,imread(['img_efforts_training2_' num2str(i) '.bmp']));
-end
-
-
 
 % Experimental conditions
 %-----------------------------------------------
-nTrial=24;
-nTraining=4;%6;
+nTrial=20;
 
 % randomization
 trialperm=randperm(nTrial);
 
 % sample list adaptation
 % Adaptation of effort list for the NeuroPrems study
-subsample = 1:24;
-subsample_training = [1 2 3 4];
+%subsample = 1:24;
+subsample = [1 2 4 5 7 8 9 10 11 12 14 15 17 18 19 20 21 22 23 24];
 itemList = itemList(subsample);
 imgItem = imgItem(subsample);
-trainingList = trainingList(subsample_training);
-imgTraining = imgTraining(subsample_training);
 
 % timing variables
 intertrial_duration=0.75;
@@ -123,19 +113,13 @@ intertrial_jitter=0.5;
 
 % Data preparation
 %-----------------------------------------------
-% training
-training_rating                  = nan(1,nTraining);
-training_press_responsetime      = nan(1,nTraining);
-training_validation_responsetime = nan(1,nTraining);
-training_cursor                  = cell(1,nTraining);
-
 % testing
 rating                  = nan(1,nTrial);
 press_responsetime      = nan(1,nTrial);
 validation_responsetime = nan(1,nTrial);
 cursor                  = cell(1,nTrial);
 
-%% Training
+%% Testing
 %-----------------------------------------------
 % display
 textstring = 'Instructions';
@@ -154,117 +138,6 @@ for i=1:3
     KbWait;
 end
 
-textstring = 'Entrainement';
-DrawMyText(display.window,textstring,ftsz_big,[255 255 255],[x,y]);
-textstring = 'appuyer sur une touche pour continuer';
-DrawMyText(display.window,textstring,ftsz_small,[100 100 100],[x,H*4/5]);
-Screen(display.window,'Flip');
-WaitSecs(0.2);
-KbWait;
-
-% Trial structure
-%-----------------------------------------------
-stoptask=0;ntrial=0; repeat=0;
-while ntrial<nTraining
-    
-    if repeat==0
-        ntrial=ntrial+1;
-    end
-    
-    if stoptask
-        break
-    end
-    
-    % fixation interval
-    Screen('DrawTexture',display.window,cross,[],rectcross);
-    KbReleaseWait;
-    wait4release()
-    Screen(display.window,'Flip');
-    WaitSecs(intertrial_duration + rand*intertrial_jitter);
-    
-    %  Check Response
-    exit=0;
-    iCursor = 1;
-    training_cursor{ntrial}(iCursor) = 50;
-    startime=GetSecs;
-    buttons = 0;
-    
-    while exit==0
-        % Write effort
-        DrawMyText(display.window,trainingList{ntrial},ftsz_small,[255 255 255],[x,y]);
-
-        % Display stimulus image
-        Screen('DrawTexture',display.window,imgTraining(ntrial).texture,[],rectImg);
-        
-        % Write instructions
-        question_name = 'C''est pénible';
-        answer_names = {'Pas du tout','Enormement'};
-        draw_scale_instruction_2(display.window,x,y,question_name,answer_names,ftsz_small);
-        Screen('DrawTexture',display.window,emoji_neutral,[],rect_emoji_neutral);
-        Screen('DrawTexture',display.window,emoji_infinite,[],rect_emoji_infinite);
-        
-        % Display cursor and scale
-        display_rating_likert(display.window,x,y,[]);
-        Screen(display.window,'Flip');
-        iCursor = iCursor + 1;
-        training_cursor{ntrial}(iCursor) = training_cursor{ntrial}(iCursor-1);
-
-        % Check keys
-        [keyisdown, ~, keycode] = KbCheck;
-        if keyisdown==1
-            % monitor validation & exit
-            if  keycode(key.space)==1
-                exit=1;
-                training_validation_responsetime(ntrial) = GetSecs - startime;
-            elseif keycode(key.escape)==1
-                exit=1;
-                stoptask=1;
-            else
-                % monitor rating time
-                if isnan(training_press_responsetime(ntrial))
-                    training_press_responsetime(ntrial) = GetSecs - startime;
-                end
-                if  keycode(key.right)==1
-                    training_cursor{ntrial}(iCursor)=min([training_cursor{ntrial}(iCursor)+1 100]);
-                elseif keycode(key.left)==1
-                    training_cursor{ntrial}(iCursor)=max([training_cursor{ntrial}(iCursor)-1 0]);
-                end
-            end
-        end
-        
-        [xMouse,yMouse,buttons] = recordResponse(display.window);
-        xcursor = (xMouse - xScaleLim(1))/diff(xScaleLim)*100;
-        xcursor = round(max([min([xcursor,100]),0]));
-        training_cursor{ntrial}(iCursor) = xcursor ;
-        % monitor rating time
-        if isnan(training_press_responsetime(ntrial)) && training_cursor{ntrial}(iCursor)~=training_cursor{ntrial}(1)
-            training_press_responsetime(ntrial) = GetSecs - startime;
-        end
-        % monitor confirmation
-        exit = any(buttons~=0) & (yMouse>=y);
-        training_validation_responsetime(ntrial) = GetSecs - startime;
-        WaitSecs(0.007);
-    end
-    
-    % record data
-    training_rating(ntrial)=training_cursor{ntrial}(iCursor);
-
-    DrawMyText(display.window,trainingList{ntrial},ftsz_small,[255 255 255],[x,y]);
-    draw_scale_instruction_2(display.window,x,y,question_name,answer_names,ftsz_small);
-    display_rating_likert(display.window,x,y,training_rating(ntrial)) ;
-    Screen('DrawTexture',display.window,emoji_neutral,[],rect_emoji_neutral);
-    Screen('DrawTexture',display.window,emoji_infinite,[],rect_emoji_infinite);
-    Screen('DrawTexture',display.window,imgTraining(ntrial).texture,[],rectImg);
-    Screen(display.window,'Flip');
-    WaitSecs(1);
-end
-
-training_rating(training_rating <5)   = 0;
-training_rating(training_rating <95 & training_rating >=5) = ceil((training_rating(training_rating <95 & training_rating >=5)-4)/10);
-training_rating(training_rating >=95) = 10;
-
-%% Testing
-%-----------------------------------------------
 % instructions:  start
 textstring = 'Prêt à débuter ?';
 DrawMyText(display.window,textstring,ftsz_big,[255 255 255],[x,y]);
@@ -386,15 +259,13 @@ Screen('CloseAll');
 %% Data saving
 %-----------------------------------------------
 % data creation
-varNames = {'trialNumber', 'itemNumber', 'rating', 'press_RT', 'validation_RT'};
-training_data=table((1:nTraining)',(1:nTraining)',training_rating',training_press_responsetime',training_validation_responsetime', 'VariableNames', varNames);
-varNames = {'trialNumber', 'itemNumber', 'rating', 'press_RT', 'validation_RT'};
-data=table((1:nTrial)',trialperm',rating',press_responsetime',validation_responsetime', 'VariableNames', varNames);
+itemNumberReal = subsample(trialperm);   % real item IDs, e.g. 1 2 4 5 7 ... 24
 
+varNames = {'trialNumber', 'itemNumber', 'rating', 'press_RT', 'validation_RT'};
+data     = table((1:nTrial)', itemNumberReal(:), rating', press_responsetime', validation_responsetime', 'VariableNames', varNames);
 % saving
-sub_data.(cfg.sessNber_str).tasks.taskRatingE2.results = struct('trainingData', training_data, 'data', data);
+sub_data.(cfg.sessNber_str).tasks.taskRatingE2.results = struct('data', data);
 % Do we really need to save this ?
-sub_data.(cfg.sessNber_str).tasks.taskRatingE2.trainingList = trainingList;
 sub_data.(cfg.sessNber_str).tasks.taskRatingE2.itemList = itemList;
 
 end

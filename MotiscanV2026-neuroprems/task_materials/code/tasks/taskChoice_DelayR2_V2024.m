@@ -63,15 +63,7 @@ taskName = 'ChoiceDelayR2'
 taskChoice_strctName = 'taskChoiceDelayR2'
 taskRating_strctName = 'taskRatingR2'
 
-trainingList_file = 'rewards_training2.xlsx';
 testingList_file  = 'rewards2.xlsx';
-
-% Training Stimuli Images
-cd(cfg.paths.task.images)
-imgTrainingR2 = struct('texture', {});
-for i = 1:6                                                                 % 6 items  
-    imgTrainingR2(i).texture = Screen('MakeTexture', display.window, imread(['img_rewards_training2_' num2str(i) '.bmp']));
-end
 
 % Testing Stimuli Images
 imgItemR2 = struct('texture', {});
@@ -93,7 +85,6 @@ cd(cfg.paths.task.code); % exit img dir
 cd(cfg.paths.task.text) % extracting text
 
 % Text.instrucText2 = ;
-text.training = 'Entrainement';
 text.appuyer = 'appuyer sur une touche pour continuer...';
 text.quePref  = 'Que préférez-vous ?';
 text.pretDebut = 'Prêt à débuter ?';
@@ -102,7 +93,6 @@ text.respFaster = 'Répondez plus rapidement svp.';
 
 % Items Text
 cd(cfg.paths.task.text)                                                     % extracting text
-trainingList  = readstim(trainingList_file);
 testingList   = readstim(testingList_file);
 cd(cfg.paths.task.code)                                                     % returning to code directory
 
@@ -116,9 +106,7 @@ text.instrucText = ['Dans ce test, il vous est demandé de choisir '    ...
 
 % Experimental Conditions
 %__________________________________________________________________________
-
-nTrial=24;
-nTraining=4;%6;
+nTrial=20;
 
 % Timing Variables
 ITI_duration = 0.5;
@@ -129,88 +117,52 @@ maxResponseDuration = 10e3;
 
 % sample list adaptation
 % Adaptation of reward list for the NeuroPrems study
-subsample_training = [1 2 3 5];
-trainingList = trainingList(subsample_training);
-imgTrainingR2 = imgTrainingR2(subsample_training);
 
 % Extract Ratings
-% Check if the participant has completed the rating task
 if isfield(sub_data.(cfg.sessNber_str).tasks, taskRating_strctName) && ...
    isfield(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName), 'results') && ...
    isfield(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results, 'data')
-    
-    % Participant has completed the rating task - use their ratings
+
     rtg_import = sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results.data;
-    temp = sortrows(rtg_import, 'itemNumber', 'ascend');
-    rtg = temp.rating(1:24);
+    rtg = nan(24,1);                              % full 1..24 range
+    rtg(rtg_import.itemNumber) = rtg_import.rating; % place each rating at its item number
     ratingRsummary = rtg;
-    
-    % Get training ratings if available
-    if isfield(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results, 'trainingData')
-        tempB_training = sortrows(sub_data.(cfg.sessNber_str).tasks.(taskRating_strctName).results.trainingData, 'itemNumber', 'ascend');
-        ratingsBenefit_training = tempB_training.rating(1:4);
-    else
-        warning('Training ratings not found - using mean control ratings from file');
-        % Load from Excel file
-        cd(cfg.paths.task.text)
-        mean_ratings_data = readmatrix('mean_control_ratings_R2.xlsx');
-        cd(cfg.paths.task.code)
-        ratingsBenefit_training = mean_ratings_data(subsample_training);
-    end
-    
-    clear temp
-    
+
 else
-    % Participant has NOT completed the rating task - use mean control ratings from Excel
     warning('Participant has not completed rating task - using mean control participant ratings from file');
-    
-    % Load mean ratings from Excel file using readmatrix (more robust)
+
     cd(cfg.paths.task.text)
     mean_ratings_data = readmatrix('mean_control_ratings_R2.xlsx');
     cd(cfg.paths.task.code)
-    
-    % Extract ratings for all 24 items
+
     rtg = mean_ratings_data(1:24);
     ratingRsummary = rtg;
-    
-    % Extract training ratings (items corresponding to subsample_training)
-    ratingsBenefit_training = mean_ratings_data(subsample_training);
 end
 
-% Training Options
-training_options = [1 2 4 1 ;
-                    4 3 3 2 ];
-
-training_delay_text2 = {'Dans une semaine', 'Dans un mois', 'Dans trois mois', 'Demain'};
-training_delay_text = string(training_delay_text2);
 % Testing Delays
 listShortDelayLabel = 'Aujourd''hui';
 listLongDelayLabels2 = {'Demain', 'Dans trois jours','Dans une semaine', 'Dans deux semaines', ...
                        'Dans un mois', 'Dans trois mois', 'Dans six mois', 'Dans un an'};
 listLongDelayLabels = string(listLongDelayLabels2);
-delayIndex = repmat(1:8,1,3);                                                                            
-random_permutation = randperm(length(delayIndex));
-delayIndex_permuted = delayIndex(random_permutation);
+baseDelays  = repmat(1:8, 1, 2);              % 16 trials: every delay x2
+perm8       = randperm(8);                    % random ordering of 1..8
+extraDelays = perm8(1:4);                     % 4 distinct delays, random per subject
+delayIndex  = [baseDelays, extraDelays];      % 20 entries
+
+delayIndex_permuted = delayIndex(randperm(numel(delayIndex)));
 
 % % Data preparation
 %__________________________________________________________________________
-% training
-training_isLeftChoice           = nan(1,nTraining);
-training_choice_position        = nan(1,nTraining);
-training_rt                     = nan(1,nTraining);
-
 % testing
 isLeftChoice    = nan(1,nTrial);
 choice_position = nan(1,nTrial);
 rt              = nan(1,nTrial);
 
-trials=1:numel(testingList);
-
-smallstim=nan(1,length(trials));
-smallrating=nan(1,length(trials));
-bigstim=nan(1,length(trials));
-bigrating=nan(1,length(trials));
-bigdelay=nan(1,length(trials));
+smallstim=nan(1,length(nTrial));
+smallrating=nan(1,length(nTrial));
+bigstim=nan(1,length(nTrial));
+bigrating=nan(1,length(nTrial));
+bigdelay=nan(1,length(nTrial));
 
 % Immediate option always on the left for even participants
 if mod(sub_data.sub_id,2) == 0
@@ -227,47 +179,53 @@ else
     rectDel = rectImgL;
 end
 
-training_immIsLeft = zeros(1,nTraining);
 testing_immIsLeft = zeros(1,nTrial);
-
 testing_labels = cell(1,nTrial);
 
 % Randomize Pairs of Items for Testing
-originalList = 1:24;
-category1 = originalList(1:12);
-category2 = originalList(13:24);
+subsample = [1 2 3 5 6 7 8 9 11 12 13 15 16 17 18 19 20 21 23 24];
+
+category1 = subsample(subsample <= 12);   % food items     = [1 2 3 5 6 7 8 9 11 12]
+category2 = subsample(subsample >= 13);   % non-food items = [13 15 16 17 18 19 20 21 23 24]
 num_repetitions = 2;
 
 food_choices = zeros(length(category1), num_repetitions);
 non_food_choices = zeros(length(category2), num_repetitions);
 
 % Check that the same item' won't appear twice in the same trial
+% Reshuffle until: (a) no item is paired with itself within a trial, and
+% (b) no unordered pair {a,b} repeats across trials, within each category.
 keep_shuffling = true;
 while keep_shuffling
-    food_choices(:, 1) = category1(randperm(length(category1)));
-    food_choices(:, 2) = category1(randperm(length(category1)));
-    non_food_choices(:,1) = category2(randperm(length(category2)));
-    non_food_choices(:,2) = category2(randperm(length(category2)));
-    if any(food_choices(:, 1) == food_choices(:, 2))
-        keep_shuffling = true;
-    elseif any(non_food_choices(:,1) == non_food_choices(:,2))
-        keep_shuffling = true;
-    else
-        keep_shuffling = false;
-    end
+    food_choices(:, 1)     = category1(randperm(length(category1)));
+    food_choices(:, 2)     = category1(randperm(length(category1)));
+    non_food_choices(:, 1) = category2(randperm(length(category2)));
+    non_food_choices(:, 2) = category2(randperm(length(category2)));
+
+    % (a) within-trial self-pairing
+    selfPair = any(food_choices(:,1) == food_choices(:,2)) || ...
+               any(non_food_choices(:,1) == non_food_choices(:,2));
+
+    % (b) repeated unordered pairs within a category
+    foodPairs    = sort(food_choices, 2);      % order-independent: {a,b}=={b,a}
+    nonFoodPairs = sort(non_food_choices, 2);
+    repeatedPair = size(unique(foodPairs,    'rows'), 1) < size(foodPairs,    1) || ...
+                   size(unique(nonFoodPairs, 'rows'), 1) < size(nonFoodPairs, 1);
+
+    keep_shuffling = selfPair || repeatedPair;
 end
 
 % Create table with items for each trial (food,non_food,food, etc.)
-combined_choices = zeros(24, 2);
-for i = 1:12
+combined_choices = zeros(20, 2);
+for i = 1:10
     food_pair = food_choices(i,:);
     non_food_pair = non_food_choices(i,:);
     combined_choices((i-1)*2+1, :) = food_pair;
     combined_choices((i-1)*2+2, :) = non_food_pair;
 end
 
-%% Training
-%-----------------------------------------------
+%% Testing
+%__________________________________________________________________________
 % Display
 DrawMyText(display.window,text.instruc,ftsz_big,[255 255 255],[x,y]);
 DrawMyText(display.window,text.appuyer,ftsz_small,[100 100 100],[x,H*4/5]);
@@ -283,157 +241,6 @@ for i=1:1
     WaitSecs(1);
     KbWait;
 end
-
-DrawMyText(display.window,text.training,ftsz_big,[255 255 255],[x,y]);
-DrawMyText(display.window,text.appuyer,ftsz_small,[100 100 100],[x,H*4/5]);
-Screen(display.window,'Flip');
-WaitSecs(0.2);
-KbWait;
-
-% Trial structure
-%-----------------------------------------------
-stoptask=0;iTrial=0; repeat=0;
-while iTrial<nTraining
-    
-    if repeat==0
-        iTrial=iTrial+1;
-    end
-    
-    if stoptask
-        break
-    end
-    
-    % int
-    Screen('DrawTexture',display.window,cross,[],rectcross);
-    KbReleaseWait;
-    Screen(display.window,'Flip');
-    WaitSecs(0.5);
-    wait4release()
-   
-    text.imm = trainingList{training_options(1,iTrial)};
-    img.imm = imgTrainingR2(training_options(1,iTrial)).texture;
-    text.del = trainingList{training_options(2,iTrial)};
-    img.del = imgTrainingR2(training_options(2,iTrial)).texture;
-    startime = Screen(display.window,'Flip');
-
-    % Check Response
-    exit = 0;
-    
-    while exit == 0
-        % Refresh Screen
-        DrawMyText(display.window, text.quePref, ftsz_small, [100 100 100], ...
-            [x, (2*y/8 - 50)], max_charPline);
-
-        DrawFormattedText(display.window,text.imm,'center',(y/2-3*y/8)-max_charPline + y/4,[255 255 255],max_charPline, 0, 0, 1, 0, winImm);
-        DrawFormattedText(display.window,listShortDelayLabel,'center',13*y/8,[255 255 255],max_charPline, 0,0,2,0,winImm);
-
-        text.del = trainingList{training_options(2,iTrial)};
-        img.del = imgTrainingR2(training_options(2,iTrial)).texture;
-        DrawFormattedText(display.window,text.del,'center',(y/2-3*y/8)-max_charPline + y/4,[255 255 255],max_charPline, 0, 0, 1, 0, winDel); 
-        DrawFormattedText(display.window,training_delay_text{iTrial},'center',13*y/8,[255 255 255],max_charPline,0,0,2,0,winDel);
-            
-        Screen('DrawTexture',display.window,img.imm,[],rectImm);
-        Screen('DrawTexture',display.window,img.del,[],rectDel);
-        Screen('LineStipple',display.window, 1, 2, mod(ceil((1:16)/8),2));
-        Screen('DrawLine', display.window, [255 255 255]*0.5, x,3*y/8 - 35 ,  x,y*7/4, 3);
-        Screen(display.window,'Flip');
-        
-    % Record Response
-        [keyisdown, ~, keycode] = KbCheck;
-        if keyisdown==1
-            % Monitor validation & exit
-            if keycode(key.escape)==1
-                exit=1;
-                timedown=GetSecs;
-                interrupt_task = 1;
-            else
-                if  keycode(key.left)==1
-                    exit=1;
-                    timedown=GetSecs;
-                    training_isLeftChoice(iTrial)=1;                                              %-1=left
-                    repeat=0;
-                elseif keycode(key.right)==1
-                    exit=1;
-                    timedown=GetSecs;
-                    training_isLeftChoice(iTrial)=0;                                               %1=right
-                    repeat=0;
-                end
-            end
-        end
-        
-        [xMouse,~,buttons] = recordResponse(display.window);
-        if buttons(1)~=0
-            training_isLeftChoice(iTrial) = sign(x-xMouse);
-            if training_isLeftChoice(iTrial) == -1; training_isLeftChoice(iTrial) = 0; end
-            training_choice_position(iTrial) = (xMouse-x)/x;
-            timedown=GetSecs;
-            repeat=0;
-            exit=1;
-        end
-        WaitSecs(waitAft_trial);
-        
-        % Monitor maximal response time
-        timePassed = GetSecs-startime;
-        if timePassed>maxResponseDuration
-            exit=1;
-            repeat=repeat+1;
-        end
-    end
-    if repeat==0
-        training_rt(iTrial)=timedown-startime;
-        if immIsLeft == 0
-            training_immIsLeft(iTrial) = 0;
-        else 
-            training_immIsLeft(iTrial) = 1;
-        end
-        % Show Response
-        DrawMyText(display.window, text.quePref, ftsz_small, [100 100 100], ...
-            [x, (2*y/8 - 50)], max_charPline);
-        Screen('TextSize', display.window, ftsz_small);
-        if mod(sub_data.sub_id,2) == 0
-            left_color = [255*(training_isLeftChoice(iTrial)==0) 255 255*(training_isLeftChoice(iTrial)==0)];
-            DrawFormattedText(display.window,text.imm,'center',(y/2-3*y/8)-max_charPline + y/4,left_color,max_charPline, 0, 0, 1, 0, winL);
-            DrawFormattedText(display.window,listShortDelayLabel,'center',13*y/8,left_color,max_charPline, 0,0,2,0,winL);
-
-            right_color = [255*(training_isLeftChoice(iTrial)==1) 255 255*(training_isLeftChoice(iTrial)==1)];
-            DrawFormattedText(display.window,text.del,'center',(y/2-3*y/8)-max_charPline + y/4,right_color,max_charPline, 0, 0, 1, 0, winR);
-            DrawFormattedText(display.window,training_delay_text{iTrial},'center',13*y/8,right_color,max_charPline, 0,0,2,0,winR);
-
-            Screen('DrawTexture',display.window,img.imm,[],rectImgL);
-            Screen('DrawTexture',display.window,img.del,[],rectImgR);
-        else
-            left_color = [255*(training_isLeftChoice(iTrial)==0) 255 255*(training_isLeftChoice(iTrial)==0)];
-            DrawFormattedText(display.window,text.del,'center',(y/2-3*y/8)-max_charPline + y/4,left_color,max_charPline, 0, 0, 1, 0, winL);
-            DrawFormattedText(display.window,training_delay_text{iTrial},'center',13*y/8,left_color,max_charPline, 0,0,2,0,winL);
-
-            right_color = [255*(training_isLeftChoice(iTrial)==1) 255 255*(training_isLeftChoice(iTrial)==1)];
-            DrawFormattedText(display.window,text.imm,'center',(y/2-3*y/8)-max_charPline + y/4,right_color,max_charPline, 0, 0, 1, 0, winR);
-            DrawFormattedText(display.window,listShortDelayLabel,'center',13*y/8,right_color,max_charPline, 0,0,2,0,winR);
-
-            Screen('DrawTexture',display.window,img.del,[],rectImgL);
-            Screen('DrawTexture',display.window,img.imm,[],rectImgR);
-        end
-
-            Screen('LineStipple',display.window, 1, 2, mod(ceil((1:16)/8),2));
-            Screen('DrawLine', display.window, [255 255 255]*0.5, x,3*y/8 - 35 ,  x,y*7/4, 3);
-
-        Screen(display.window,'Flip');
-        tresponse = GetSecs;
-        while GetSecs <= tresponse + blanktime
-            
-        end
-    else
-        % Instruction: Speed-up warning
-        Screen('TextSize', display.window, ftsz_small);
-        DrawFormattedText(display.window,text.timesUp,'center','center',[255 255 255],max_charPline, 0, 0, 2, 0, []);
-        DrawMyText(display.window,text.respFaster,ftsz_big,[255 255 255],[x,y*1.2]);
-        Screen(display.window,'Flip');
-        WaitSecs(blanktime+1);
-    end
-end
-
-%% Testing
-%__________________________________________________________________________
 
 % Instructions:  Start
 DrawMyText(display.window,text.pretDebut,ftsz_big,[255 255 255],[x,y]);
@@ -500,14 +307,14 @@ while iTrial<nTrial
        DrawMyText(display.window, text.quePref, ftsz_small, [100 100 100], ...
             [x, (2*y/8 - 50)], max_charPline);
 
-        DrawFormattedText(display.window,text.imm,'center',(y/2-3*y/8)-max_charPline + y/4, [255 255 255],max_charPline, 0, 0, 1, 0, winImm);
-        DrawFormattedText(display.window,listShortDelayLabel,'center',13*y/8,[255 255 255],max_charPline, 0,0,2,0,winImm);
+        DrawFormattedText(display.window,listShortDelayLabel,'center',(y/2-3*y/8)-max_charPline + y/4, [255 255 255],max_charPline, 0, 0, 1, 0, winImm);
+        DrawFormattedText(display.window,text.imm,'center',13*y/8,[255 255 255],max_charPline, 0,0,2,0,winImm);
 
         text.del = testingList{bigstim(1,iTrial)};
         img.del = imgItemR2(bigstim(1,iTrial)).texture;
 
-        DrawFormattedText(display.window,text.del,'center',(y/2-3*y/8)-max_charPline + y/4,[255 255 255],max_charPline, 0, 0, 1, 0, winDel); 
-        DrawFormattedText(display.window,delay_label,'center',13*y/8,[255 255 255],max_charPline,0,0,2,0,winDel);
+        DrawFormattedText(display.window,delay_label,'center',(y/2-3*y/8)-max_charPline + y/4,[255 255 255],max_charPline, 0, 0, 1, 0, winDel); 
+        DrawFormattedText(display.window,text.del,'center',13*y/8,[255 255 255],max_charPline,0,0,2,0,winDel);
             
         Screen('DrawTexture',display.window,img.imm,[],rectImm);
         Screen('DrawTexture',display.window,img.del,[],rectDel);
@@ -569,23 +376,23 @@ while iTrial<nTrial
         Screen('TextSize', display.window, ftsz_small);
         if mod(sub_data.sub_id,2) == 0
             left_color = [255*(isLeftChoice(iTrial)==0) 255 255*(isLeftChoice(iTrial)==0)];
-            DrawFormattedText(display.window,text.imm,'center',(y/2-3*y/8)-max_charPline + y/4,left_color,max_charPline, 0, 0, 1, 0, winL);
-            DrawFormattedText(display.window,listShortDelayLabel,'center',13*y/8,left_color,max_charPline, 0,0,2,0,winL);
+            DrawFormattedText(display.window,listShortDelayLabel,'center',(y/2-3*y/8)-max_charPline + y/4,left_color,max_charPline, 0, 0, 1, 0, winL);
+            DrawFormattedText(display.window,text.imm,'center',13*y/8,left_color,max_charPline, 0,0,2,0,winL);
 
             right_color = [255*(isLeftChoice(iTrial)==1) 255 255*(isLeftChoice(iTrial)==1)];
-            DrawFormattedText(display.window,text.del,'center',(y/2-3*y/8)-max_charPline + y/4,right_color,max_charPline, 0, 0, 1, 0, winR);
-            DrawFormattedText(display.window,delay_label,'center',13*y/8,right_color,max_charPline, 0,0,2,0,winR);
+            DrawFormattedText(display.window,delay_label,'center',(y/2-3*y/8)-max_charPline + y/4,right_color,max_charPline, 0, 0, 1, 0, winR);
+            DrawFormattedText(display.window,text.del,'center',13*y/8,right_color,max_charPline, 0,0,2,0,winR);
 
             Screen('DrawTexture',display.window,img.imm,[],rectImgL);
             Screen('DrawTexture',display.window,img.del,[],rectImgR);
         else
             left_color = [255*(isLeftChoice(iTrial)==0) 255 255*(isLeftChoice(iTrial)==0)];
-            DrawFormattedText(display.window,text.del,'center',(y/2-3*y/8)-max_charPline + y/4,left_color,max_charPline, 0, 0, 1, 0, winL);
-            DrawFormattedText(display.window,delay_label,'center',13*y/8,left_color,max_charPline, 0,0,2,0,winL);
+            DrawFormattedText(display.window,delay_label,'center',(y/2-3*y/8)-max_charPline + y/4,left_color,max_charPline, 0, 0, 1, 0, winL);
+            DrawFormattedText(display.window,text.del,'center',13*y/8,left_color,max_charPline, 0,0,2,0,winL);
 
             right_color = [255*(isLeftChoice(iTrial)==1) 255 255*(isLeftChoice(iTrial)==1)];
-            DrawFormattedText(display.window,text.imm,'center',(y/2-3*y/8)-max_charPline + y/4,right_color,max_charPline, 0, 0, 1, 0, winR);
-            DrawFormattedText(display.window,listShortDelayLabel,'center',13*y/8,right_color,max_charPline, 0,0,2,0,winR);
+            DrawFormattedText(display.window,listShortDelayLabel,'center',(y/2-3*y/8)-max_charPline + y/4,right_color,max_charPline, 0, 0, 1, 0, winR);
+            DrawFormattedText(display.window,text.imm,'center',13*y/8,right_color,max_charPline, 0,0,2,0,winR);
 
             Screen('DrawTexture',display.window,img.del,[],rectImgL);
             Screen('DrawTexture',display.window,img.imm,[],rectImgR);
@@ -616,46 +423,33 @@ sca;
 
 %% Data saving
 %__________________________________________________________________________
-% data creation
-varNames      = {'trialNumber', 'item Left','rating Left','item Right','rating Right','isLeftChoice','delayLabel','choice_position','RT', 'immIsLeft'};
+immediateItem   = smallstim(:);
+immediateRating = smallrating(:);
+delayedItem     = bigstim(:);
+delayedRating   = bigrating(:);
 
+% choseImmediate: 1 = chose the immediate option, 0 = chose the delayed one.
+% isLeftChoice is 1=left, 0=right; immIsLeft says whether immediate was on the
+% left. The subject chose immediate exactly when those two agree.
 
-if immIsLeft == 1
-    training_itemLeft = [1, 2, 5, 1];
-    training_itemRight = [5, 3, 3, 2];
-    training_ratingLeft = ratingsBenefit_training(training_options(1,:));
-    training_ratingRight = ratingsBenefit_training(training_options(2,:));
-else
-    training_itemLeft = [5, 3, 3, 2];
-    training_itemRight = [1, 2, 5, 1];
-    training_ratingLeft = ratingsBenefit_training(training_options(2,:));
-    training_ratingRight = ratingsBenefit_training(training_options(1,:));
-end
+immIsLeftCol   = repmat(immIsLeft, nTrial, 1);
+choseImmediate = double(isLeftChoice(:) == immIsLeft);
+choseImmediate(isnan(isLeftChoice(:))) = NaN;
 
-training_data = table((1:nTraining)',training_itemLeft',training_ratingLeft,training_itemRight',training_ratingRight,training_isLeftChoice',training_delay_text', training_choice_position',training_rt', training_immIsLeft', 'VariableNames', varNames);
+varNames = {'trialNumber','immediateItem','immediateRating', ...
+            'delayedItem','delayedRating','delayLabel', ...
+            'choseImmediate','RT','immIsLeft'};
 
-
-varNames      = {'trialNumber', 'itemNumberLeft','ratingLeft', 'itemNumberRight','ratingRight','delayLabel','isLeftChoice','choice_position', 'RT', 'immIsLeft'};
-
-if immIsLeft == 1
-    ratingLeft    = smallrating(1,:);
-    ratingRight   = bigrating(1,:);
-    itemLeft = smallstim(1,:);
-    itemRight = bigstim(1,:);
-else
-    ratingLeft = bigrating(1,:);
-    ratingRight = smallrating(1,:);
-    itemLeft = bigstim(1,:);
-    itemRight = smallstim(1,:);
-end
-
-data          = table((1:nTrial)',itemLeft',ratingLeft', itemRight',ratingRight',testing_labels',isLeftChoice',choice_position',rt',testing_immIsLeft','VariableNames',varNames);
+data = table((1:nTrial)', immediateItem, immediateRating, ...
+             delayedItem, delayedRating, testing_labels(:), ...
+             choseImmediate, rt(:), immIsLeftCol, ...
+             'VariableNames', varNames);
 
 % saving
 if interrupt_task
     sub_data.(cfg.sessNber_str).tasks.(taskChoice_strctName).completed = false;
 else; sub_data.(cfg.sessNber_str).tasks.(taskChoice_strctName).completed = true;
 end
-sub_data.(cfg.sessNber_str).tasks.(taskChoice_strctName).results = struct('trainingData', training_data, 'data', data);
 
+sub_data.(cfg.sessNber_str).tasks.(taskChoice_strctName).results = struct('data', data);
 end
